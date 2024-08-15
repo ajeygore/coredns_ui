@@ -26,6 +26,20 @@ class DnsRecord < ApplicationRecord
   end
 
   # adds dns record to zone
+  #
+  def add_a_old
+    zone_name = dns_zone.name
+    zone_name += '.' unless zone_name.end_with?('.')
+    a = [
+      ip: data,
+      ttl: time_to_live
+    ]
+
+    host_record = { a: a }
+    redis = Redis.new(host: dns_zone.redis_host)
+    redis.hset(zone_name, name, host_record.to_json)
+  end
+
   def add_a # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
     zone_name = dns_zone.name
     zone_name += '.' unless dns_zone.name.end_with?('.')
@@ -34,7 +48,7 @@ class DnsRecord < ApplicationRecord
     dns_records.each do |dns_record|
       a << {
         ip: dns_record.data,
-        ttl: dns_record.time_to_live
+        ttl: dns_record.ttl.to_i
       }
     end
 

@@ -4,7 +4,7 @@ class CreateDnsRecords < ActiveRecord::Migration[7.2]
       t.string :record_type
       t.string :name
       t.string :data
-      t.string :ttl
+      t.integer :ttl
       t.references :dns_zone, null: false, foreign_key: true
 
       t.timestamps
