@@ -1,0 +1,35 @@
+p style="color: green" = notice
+- if @dns_record.errors.any?
+    p style="color: red" = @dns_record.errors.full_messages.join(", ")
+
+h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" = @dns_zone.name
+
+= form_with(model: [@dns_zone, @dns_record]) do |form|
+  div class="flex ml-2 mr-2 mt-2 gap-x-2"
+    = form.text_field :name, class: "rounded", placeholder: "Host Name"
+    = form.text_field :data, class: "rounded", placeholder: "IP Address"
+    = form.submit "Add a record", class: "inline-block font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+
+
+h2 class="text-[#0099ff] text-1xl font-extrabold pb-2 ml-2" DNS Records for this zone
+
+
+
+
+- if @dns_zone.dns_records.any?
+
+  table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
+    thead
+      tr
+        th class="bg-blue-100 border text-left px-4 py-2" Name
+        th class="bg-blue-100 border text-left px-4 py-2" Data
+        th class="bg-blue-100 border text-left px-4 py-2" TTL
+        th class="bg-blue-100  border text-left px-4 py-2"
+
+    tbody
+      - @dns_zone.dns_records.order("LOWER(name)").each do |record|
+        tr
+          td class="border px-4 py-2" = record.name
+          td class="border px-4 py-2" = record.data
+          td class="border px-4 py-2" = record.ttl
+          td class="border px-4 py-2" = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"

@@ -1,0 +1,26 @@
+p style="color: green" = notice
+
+h1 class="text-[#007bff] text-4xl font-extrabold pb-2 border-b-2 border-black"  DNS Zones
+p
+
+#dns_zones
+  table class="w-full mt-4 mb-4 text-gray-900"
+    - @dns_zones.each do |dns_zone|
+      tr
+        td class="p-2 border-l-0 border-b-2 border-t-0 border-gray-300 text-[#007bff] "
+          div class="flex items-center justify-between flex-wrap"
+            span class="text-2xl font-light mt tracking-tight "
+              = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone)
+            span
+              span class="text-green-700 p-2"
+                = "Redis Host: #{dns_zone.redis_host}"
+              span class="text-green-700 p-2"
+                = "Records: #{dns_zone.dns_records.count}"
+              span
+                = link_to "Refresh Zone", refresh_path(dns_zone), class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-green-600"
+
+
+
+
+
+= link_to "Add a DNS Zone", new_dns_zone_path, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"

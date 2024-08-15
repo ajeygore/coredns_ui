@@ -1,0 +1,10 @@
+h1 Editing dns zone
+
+== render "form", dns_zone: @dns_zone
+
+br
+
+div
+  => link_to "Show this dns zone", @dns_zone
+  '|
+  =< link_to "Back to dns zones", dns_zones_path

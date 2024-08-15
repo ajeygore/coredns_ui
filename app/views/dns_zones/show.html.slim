@@ -1,0 +1,27 @@
+p style="color: green" = notice
+
+h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black" = @dns_zone.name
+
+
+h2 class="text-[#0099ff] text-1xl font-extrabold pb-2" DNS Records for this zone
+
+
+
+
+- if @dns_zone.dns_records.any?
+
+  table class="table-fixed w-full shadow-lg bg-white"
+    thead
+      tr
+        th class="bg-blue-100 border text-left px-8 py-4" Name
+        th class="bg-blue-100 border text-left px-8 py-4" Data
+        th class="bg-blue-100 border text-left px-8 py-4" TTL
+        th class="bg-blue-100 border text-left px-8 py-4"
+
+    tbody
+      - @dns_zone.dns_records.each do |record|
+        tr
+          td class="border px-8 py-4" = record.name
+          td class="border px-8 py-4" = record.data
+          td class="border px-8 py-4" = record.ttl
+          td class="border px-8 py-4" = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
