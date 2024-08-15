@@ -8,11 +8,11 @@ sudo apt-get install -y ansible wget curl rsync git
 sudo apt-get update
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
+ansible-playbook scripts/rails-prod.yml
 
 curl -fsSL https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer | bash
 echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
 echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-source ~/.bashrc
 
 export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
@@ -46,7 +46,7 @@ source ~/.bashrc
 export GEM_HOME=~/.ruby/
 export PATH="$PATH:~/.ruby/bin"
 
-ansible-playbook scripts/rails-prod.yml
+
 GEM_HOME=~/.ruby/ PATH="$PATH:~/.ruby/bin" gem install bundler
 rm -rf .local
 bundle config set --local path '.local'
