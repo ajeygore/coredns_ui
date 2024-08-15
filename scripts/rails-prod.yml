@@ -11,25 +11,31 @@
     - name: Install necessary packages
       ansible.builtin.apt:
         name:
-          - libyaml-dev
-          - build-essential
-          - libvips
-          - pkg-config
-          - inotify-tools
-          - openssh-server
-          - wireguard
-          - net-tools
-          - screen
-          - git
-          - curl
-          - libssl-dev
-          - libreadline-dev
-          - zlib1g-dev
           - autoconf
           - bison
-          - libncurses5-dev
+          - bison
+          - build-essential
+          - curl
+          - git
+          - inotify-tools
           - libffi-dev
           - libgdbm-dev
+          - libncur
+          - libncurses5-dev
           - libpq-dev
-          - foreman
+          - libreadline-dev
+          - libreadline-dev
+          - libssl-dev
+          - libssl-dev
+          - libvips
+          - libyaml-dev
+          - net-tools
+          - net-tools
+          - openssh-server
+          - pkg-config
+          - screen
+          - wireguard
+          - zlib1g-dev
+
         state: present
+        update_cache: yes
