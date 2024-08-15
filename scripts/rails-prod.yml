@@ -1,0 +1,35 @@
+---
+- name: Install packages and gems on localhost
+  hosts: localhost
+  become: yes # Use sudo to become the root user
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install necessary packages
+      ansible.builtin.apt:
+        name:
+          - libyaml-dev
+          - build-essential
+          - libvips
+          - pkg-config
+          - inotify-tools
+          - openssh-server
+          - wireguard
+          - net-tools
+          - screen
+          - git
+          - curl
+          - libssl-dev
+          - libreadline-dev
+          - zlib1g-dev
+          - autoconf
+          - bison
+          - libncurses5-dev
+          - libffi-dev
+          - libgdbm-dev
+          - libpq-dev
+          - foreman
+        state: present
