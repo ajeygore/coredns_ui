@@ -1,6 +1,16 @@
 class DnsZone < ApplicationRecord
   has_many :dns_records, dependent: :destroy
   validates_uniqueness_of :name
+  after_save :refesh_coredns
+
+  def refesh_coredns
+    pid = `sudo pgrep coredns`.strip
+
+    return unless pid.present?
+
+    system("sudo kill -USR1 #{pid}")
+    render plain: "Sent SIGUSR1 to process #{pid}", status: :ok
+  end
 
   def self.refresh_zones
     DnsZone.all.each(&:refresh)

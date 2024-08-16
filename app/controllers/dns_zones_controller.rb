@@ -16,7 +16,7 @@ class DnsZonesController < ApplicationController
   # GET /dns_zones/new
   def new
     @dns_zone = DnsZone.new
-    @dns_zone.redis_host = "127.0.0.1"
+    @dns_zone.redis_host = 'localhost'
   end
 
   # GET /dns_zones/1/edit
@@ -34,6 +34,7 @@ class DnsZonesController < ApplicationController
 
     respond_to do |format|
       if @dns_zone.save
+
         format.html { redirect_to dns_zones_path, notice: "Dns zone was successfully created." }
         format.json { render :index, status: :created, location: @dns_zone }
       else
@@ -57,7 +58,7 @@ class DnsZonesController < ApplicationController
   end
 
   # DELETE /dns_zones/1 or /dns_zones/1.json
-  def destroy
+  def destroy # rubocop:disable Metrics/MethodLength
     can_delete = true if @dns_zone.dns_records.count.zero?
     if can_delete
       @dns_zone.destroy!
