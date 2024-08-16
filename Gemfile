@@ -28,7 +28,7 @@ gem "redis", ">= 4.0.1"
 # gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+gem "tzinfo-data", platforms: %i[windows jruby]
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -38,11 +38,10 @@ gem "bootsnap", require: false
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "debug", platforms: %i[mri windows], require: "debug/prelude"
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
-
 
   gem "rspec-rails"
 
@@ -57,13 +56,9 @@ group :development, :test do
   # end
 end
 
-
 group :test do
   gem "shoulda-matchers"
 end
-
-
-
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
@@ -72,7 +67,7 @@ group :development do
   gem "guard-rubocop", require: false
   gem "rubocop", require: false
   gem "ruby-lsp"
-   gem "web-console"
+  gem "web-console"
   # Add speed badges [https://github.com/MiniProfiler/rack-mini-profiler]
   # gem "rack-mini-profiler"
 
@@ -81,10 +76,9 @@ group :development do
 
   gem "rubocop-discourse"
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
-  #gem "rubocop-rails-omakase", require: false
+  # gem "rubocop-rails-omakase", require: false
   # Sensible style https://github.com/okuramasafumi/rubocop-sensible
   gem 'rubocop-sensible', group: :development, require: false
-
 end
 
 # Please note Sorbet required watchman, install in your system

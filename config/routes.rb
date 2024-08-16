@@ -15,4 +15,10 @@ Rails.application.routes.draw do
   get "/dns_zones/:id/refresh" => "dns_zones#refresh", as: :refresh
   # Defines the root path route ("/")
   root "dns_zones#index"
+
+  # OmniAuth routes
+  get 'auth/:provider/callback', to: 'sessions#create'
+  get 'auth/failure', to: redirect('/')
+  get 'logout', to: 'sessions#destroy', as: 'logout'
+  get 'login', to: 'application#login', as: 'login'
 end

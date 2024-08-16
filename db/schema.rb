@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_08_13_131718) do
+ActiveRecord::Schema[7.2].define(version: 2024_08_16_112144) do
   create_table "dns_records", force: :cascade do |t|
     t.string "record_type"
     t.string "name"
@@ -27,6 +27,20 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_13_131718) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "redis_host"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "first_name"
+    t.string "last_name"
+    t.string "name"
+    t.string "alias_name"
+    t.string "email"
+    t.string "profile_photopath"
+    t.string "auth_provider"
+    t.boolean "admin"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "uid"
   end
 
   add_foreign_key "dns_records", "dns_zones"
