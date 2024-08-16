@@ -58,10 +58,18 @@ class DnsZonesController < ApplicationController
 
   # DELETE /dns_zones/1 or /dns_zones/1.json
   def destroy
-    @dns_zone.destroy!
-    respond_to do |format|
-      format.html { redirect_to dns_zones_url, notice: "Dns zone was successfully destroyed." }
-      format.json { head :no_content }
+    can_delete = true if @dns_zone.dns_records.count.zero?
+    if can_delete
+      @dns_zone.destroy!
+      respond_to do |format|
+        format.html { redirect_to dns_zones_url, notice: 'DNS Zone was successfully deleted.' }
+        format.json { head :no_content }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to dns_zones_url, alert: 'DNS Zone could not be deleted.' }
+        format.json { render json: "{errors: 'Can't destroy zone with records'}", status: :unprocessable_entity }
+      end
     end
   end
 
