@@ -9,7 +9,7 @@ class DnsZone < ApplicationRecord
     return unless pid.present?
 
     system("sudo kill -USR1 #{pid}")
-    render plain: "Sent SIGUSR1 to process #{pid}", status: :ok
+    Rails.looger.info("CoreDNS has been reloaded")
   end
 
   def self.refresh_zones
