@@ -25,36 +25,34 @@ class DnsRecord < ApplicationRecord
     ttl
   end
 
-  # adds dns record to zone
-  #
-  def add_a_old
-    zone_name = dns_zone.name
-    zone_name += '.' unless zone_name.end_with?('.')
-    a = [
-      ip: data,
-      ttl: time_to_live
-    ]
+  def update_redis
+    method_name = "add_#{record_type.downcase}"
+    raise "Unknown record type: #{record_type}" unless respond_to?(method_name)
 
-    host_record = { a: a }
-    redis = Redis.new(host: dns_zone.redis_host)
-    redis.hset(zone_name, name, host_record.to_json)
+    send(method_name)
   end
 
-  def add_a # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
-    zone_name = dns_zone.name
-    zone_name += '.' unless dns_zone.name.end_with?('.')
-    dns_records = dns_zone.dns_records.where(name: name, record_type: DnsRecord::A)
-    a = []
-    dns_records.each do |dns_record|
-      a << {
-        ip: dns_record.data,
-        ttl: dns_record.ttl.to_i
-      }
-    end
-
-    record = { a: a }
+  def add_a
+    record = { a: prepare_a }
+    zone_name = "#{dns_zone.name}." unless dns_zone.name.end_with?('.')
     redis = Redis.new(host: dns_zone.redis_host)
     redis.hset(zone_name, name, record.to_json)
+  end
+
+  def prepare_a_data
+    unique_records = DnsRecord.distinct.pluck(:name)
+    unique_records.each do |record_name|
+      prepare_a record_name
+    end
+  end
+
+  def prepare_a(record_name)
+    dns_records = dns_zone.dns_records.where(name: record_name, record_type: DnsRecord::A)
+    a = []
+    dns_records.each do |dns_record|
+      a << { ip: dns_record.data, ttl: dns_record.time_to_live.to_i }
+    end
+    a
   end
 
   def del_a

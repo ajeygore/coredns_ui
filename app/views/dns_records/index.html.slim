@@ -5,19 +5,17 @@ p style="color: green" = notice
 h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" = @dns_zone.name
 
 = form_with(model: [@dns_zone, @dns_record]) do |form|
-  div class="flex ml-2 mr-2 mt-2 gap-x-2"
-    = form.text_field :name, class: "rounded", placeholder: "Host Name"
-    = form.text_field :data, class: "rounded", placeholder: "IP Address"
-    = form.submit "Add a record", class: "inline-block font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+  div class="ml-2 mr-2 sm:flex-wrap"
+    / = form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
+    = form.select :record_type, %w(A NS TXT), class: "rounded ml-2", prompt: "Select Record Type"
+    = form.text_field :name, class: "rounded ml-2", placeholder: "Record Name"
+    = form.text_field :data, class: "rounded ml-2 mt-2", placeholder: "Record Value"
+    = form.text_field :ttl, class: "rounded ml-2 mt-2 ", value: "300"
+    = form.submit "Add a record", class: "ml-2 mr-2 mt-2 inline-block font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
 
-
-h2 class="text-[#0099ff] text-1xl font-extrabold pb-2 ml-2" DNS Records for this zone
-
-
-
+h2 class="text-[#0099ff] text-2xl font-extrabold pb-2 ml-2 mt-4" DNS Records for this zone
 
 - if @dns_zone.dns_records.any?
-
   table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
     thead
       tr

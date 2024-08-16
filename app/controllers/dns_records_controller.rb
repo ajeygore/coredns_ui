@@ -4,11 +4,10 @@ class DnsRecordsController < ApplicationController
   def create # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     @dns_record = @dns_zone.dns_records.new(dns_record_params)
     @dns_record.ttl = @dns_record.time_to_live
-    @dns_record.record_type = DnsRecord::A
 
     respond_to do |format|
       if @dns_record.save
-        @dns_record.add_a if @dns_record.record_type == DnsRecord::A
+        @dns_zone.update_redis(@dns_record.name)
         format.html { redirect_to dns_zone_dns_records_path(@dns_zone), notice: 'Dns record was successfully created.' }
         format.json { render :index, status: :created, location: @dns_zone }
       else
@@ -46,6 +45,6 @@ class DnsRecordsController < ApplicationController
   end
 
   def dns_record_params
-    params.require(:dns_record).permit(:name, :data, :ttl)
+    params.require(:dns_record).permit(:name, :data, :ttl, :record_type)
   end
 end
