@@ -59,7 +59,6 @@ class DnsZonesController < ApplicationController
   # DELETE /dns_zones/1 or /dns_zones/1.json
   def destroy
     @dns_zone.destroy!
-
     respond_to do |format|
       format.html { redirect_to dns_zones_url, notice: "Dns zone was successfully destroyed." }
       format.json { head :no_content }

@@ -2,6 +2,7 @@ class DnsRecord < ApplicationRecord
   belongs_to :dns_zone
   validates :name, presence: true
   validates :data, presence: true
+  validates :record_type, presence: true
   validates :name, uniqueness: { scope: :data, message: 'already exists' }
 
   A = 'A'.freeze

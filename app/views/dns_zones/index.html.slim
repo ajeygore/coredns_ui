@@ -17,7 +17,12 @@ p
               span class="text-green-700 p-2"
                 = "Records: #{dns_zone.dns_records.count}"
               span
-                = link_to "Refresh Zone", refresh_path(dns_zone), class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-green-600"
+                = link_to "Refresh Zone", refresh_path(dns_zone), class: "mr-2 inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-green-600"
+              span
+                - if dns_zone.dns_records.count > 0
+                  = link_to "Delete Zone", dns_zones_path, disabled: true,  class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-gray-400"
+                - if dns_zone.dns_records.count == 0
+                  = link_to "Delete Zone", dns_zone, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' },  class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
 
 
 
