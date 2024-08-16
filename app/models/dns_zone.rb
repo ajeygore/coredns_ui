@@ -31,7 +31,10 @@ class DnsZone < ApplicationRecord
     redis = Redis.new(host: redis_host)
     redis.hdel("#{name}.", record_name)
     record = prepare_records(record_name)
-    redis.hset("#{name}.", record_name, record.to_json)
+    redis.hset("#{name}.", record_name, record.to_json) if record.count.positive?
+  end
+
+  def zone_name_add_acme_challenge
   end
 
   def prepare_a(record_name)
@@ -62,7 +65,7 @@ class DnsZone < ApplicationRecord
 
     txt = []
     records.each do |record|
-      txt << { host: record.data, ttl: record.time_to_live.to_i }
+      txt << { text: record.data, ttl: record.time_to_live.to_i }
     end
     txt
   end

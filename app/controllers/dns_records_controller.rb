@@ -29,8 +29,8 @@ class DnsRecordsController < ApplicationController
 
   def destroy
     @dns_record = @dns_zone.dns_records.find(params[:id])
-    @dns_record.del_a
     @dns_record.destroy
+    @dns_zone.update_redis(@dns_record.name)
 
     respond_to do |format|
       format.html { redirect_to dns_zone_dns_records_path(@dns_zone), notice: 'Dns record was successfully destroyed.' }
