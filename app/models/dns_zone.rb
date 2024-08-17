@@ -1,7 +1,7 @@
 class DnsZone < ApplicationRecord
   has_many :dns_records, dependent: :destroy
   validates_uniqueness_of :name
-  after_save :refesh_coredns
+  # after_save :refesh_coredns disabling this, since now coredns can reload zones on its own.
 
   def refesh_coredns
     pid = `sudo pgrep coredns`.strip
