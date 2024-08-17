@@ -1,0 +1,10 @@
+p style="color: green" = notice
+
+== render @api_token
+
+div
+  => link_to "Edit this api token", edit_api_token_path(@api_token)
+  '|
+  =< link_to "Back to api tokens", api_tokens_path
+
+  = button_to "Destroy this api token", @api_token, method: :delete

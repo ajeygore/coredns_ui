@@ -1,0 +1,10 @@
+h1 Editing api token
+
+== render "form", api_token: @api_token
+
+br
+
+div
+  => link_to "Show this api token", @api_token
+  '|
+  =< link_to "Back to api tokens", api_tokens_path

@@ -1,6 +1,13 @@
 Rails.application.routes.draw do
+  resources :api_tokens, only: %i[index new destroy]
   resources :dns_zones do
     resources :dns_records
+  end
+
+  namespace :api do
+    namespace :v1 do
+      resources :zones, only: [:create] # Replace `your_resource` with the actual resource name
+    end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

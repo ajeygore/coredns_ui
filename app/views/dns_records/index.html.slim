@@ -23,7 +23,7 @@ h2 class="text-[#0099ff] text-2xl font-extrabold pb-2 ml-2 mt-4" DNS Records for
         th class="bg-blue-100 border text-left px-4 py-2" Name
         th class="bg-blue-100 border text-left px-4 py-2" Data
         th class="bg-blue-100 border text-left px-4 py-2" TTL
-        th class="bg-blue-100  border text-left px-4 py-2"
+        th class="bg-blue-100  border text-left px-4 py-2" Actions
 
     tbody
       - @dns_zone.dns_records.order("LOWER(name)").each do |record|

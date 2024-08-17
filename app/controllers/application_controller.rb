@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
+  before_action :redirect_if_authenticated, only: [:login]
   before_action :require_login, except: %i[login]
 
   helper_method :current_user, :logged_in?
@@ -14,6 +15,12 @@ class ApplicationController < ActionController::Base
 
   def logged_in?
     !!current_user
+  end
+
+  def redirect_if_authenticated
+    return unless current_user # Or your own logic to check if a user is signed in
+
+    redirect_to dns_zones_path
   end
 
   def require_login

@@ -1,0 +1,10 @@
+div id="#{dom_id api_token}"
+  p
+    strong Token:
+    =< api_token.token
+  p
+    strong User:
+    =< api_token.user_id
+  p
+    strong Expires at:
+    =< api_token.expires_at

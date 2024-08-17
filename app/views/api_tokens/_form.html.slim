@@ -1,0 +1,22 @@
+= form_with(model: api_token) do |form|
+  - if api_token.errors.any?
+    div style="color: red"
+      h2 = "#{pluralize(api_token.errors.count, "error")} prohibited this api_token from being saved:"
+      ul
+        - api_token.errors.each do |error|
+          li = error.full_message
+
+  div
+    = form.label :token, style: "display: block"
+    = form.text_field :token
+
+  div
+    = form.label :user_id, style: "display: block"
+    = form.text_field :user_id
+
+  div
+    = form.label :expires_at, style: "display: block"
+    = form.datetime_field :expires_at
+
+  div
+    = form.submit

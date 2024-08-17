@@ -10,7 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_08_16_112144) do
+ActiveRecord::Schema[7.2].define(version: 2024_08_17_171455) do
+  create_table "api_tokens", force: :cascade do |t|
+    t.string "token"
+    t.integer "user_id", null: false
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_api_tokens_on_token"
+    t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
   create_table "dns_records", force: :cascade do |t|
     t.string "record_type"
     t.string "name"
@@ -43,5 +53,6 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_16_112144) do
     t.string "uid"
   end
 
+  add_foreign_key "api_tokens", "users"
   add_foreign_key "dns_records", "dns_zones"
 end

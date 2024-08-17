@@ -1,0 +1,18 @@
+p style="color: green" = notice
+
+h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" API Tokens
+
+= link_to "New api token", new_api_token_path, class: "ml-2 mr-2 mt-2 mb-4 inline-block font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+
+table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
+  thead
+    tr
+      th class="bg-blue-100 border text-left px-4 py-2" Created by
+      th class="bg-blue-100 border text-left px-4 py-2" API Token
+      th class="bg-blue-100 border text-left px-4 py-2" Actions
+  tbody
+    - @api_tokens.each do |api_token|
+      tr
+        td class="border px-4 py-2" = api_token.user.name
+        td class="border px-4 py-2" = api_token.token
+        td class="border px-4 py-2" = link_to "Delete", api_token, method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
