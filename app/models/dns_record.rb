@@ -3,7 +3,7 @@ class DnsRecord < ApplicationRecord
   validates :name, presence: true
   validates :data, presence: true
   validates :record_type, presence: true
-  validates :name, uniqueness: { scope: :data, message: 'already exists' }
+  validates :name, uniqueness: { scope: %i[data dns_zone_id], message: 'already exists' }
 
   A = 'A'.freeze
   AAAA = 'AAAA'.freeze

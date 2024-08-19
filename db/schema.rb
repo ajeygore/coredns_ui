@@ -25,7 +25,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_17_171455) do
     t.string "record_type"
     t.string "name"
     t.string "data"
-    t.string "ttl"
+    t.integer "ttl"
     t.integer "dns_zone_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

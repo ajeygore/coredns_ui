@@ -1,19 +1,18 @@
-class Api::V1::ZonesController < ApplicationController
-  skip_before_action :verify_authenticity_token
-  before_action :authenticate_api
+class Api::V1::ZonesController < Api::ApiController
+  def create_subdomain
+    if DnsZone.create_subdomain(zone_params)
+      zone = DnsZone.find_by(name: zone_params[:name])
+      render json: { id: zone.id, name: zone.name }, status: :created
+    else
+      render json: { errors: zone.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
 
   private
 
-  def authenticate_api
-    token = request.headers['Authorization']
-    api_token = ApiToken.find_by(token: token)
+  # Use callbacks to share common setup or constraints between actions.
 
-    return unless api_token.nil? || api_token.expired?
-
-    render json: { error: 'Unauthorized' }, status: :unauthorized
-  end
-
-  def resource_params
-    params.require(:your_resource).permit(:attribute1, :attribute2) # Replace with actual permitted params
+  def zone_params
+    params.require(:zone).permit(:name, :ip_address) # Replace with actual permitted params
   end
 end

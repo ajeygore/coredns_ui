@@ -3,6 +3,8 @@
 class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
   has_many :dns_records, dependent: :destroy
   validates_uniqueness_of :name
+  # before_validation :check_if_subdomain_of_existing_domain, on: :create
+
   # after_save :refesh_coredns disabling this, since now coredns can reload zones on its own.
 
   def refesh_coredns
@@ -80,5 +82,33 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
       txt << { text: record.data, ttl: record.time_to_live.to_i }
     end
     txt
+  end
+
+  def self.create_subdomain(params)
+    zone = DnsZone.create(name: params[:name], redis_host: 'localhost')
+    zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:ip_address], ttl: '300')
+    zone.dns_records.create(name: '*', record_type: DnsRecord::A, data: params[:ip_address], ttl: '300')
+  end
+
+  private
+
+  def check_if_subdomain_of_existing_domain
+    unless parent_domain_exists?
+      errors.add(:base, "The domain '#{name}' is not a subdomain of an existing domain")
+    end
+  end
+
+  def parent_domain_exists?
+    parts = name.split('.')
+
+    # Start checking from the immediate parent and go upwards
+    while parts.size > 1
+      parts.shift
+      potential_parent = parts.join('.')
+
+      return true if DnsZone.exists?(name: potential_parent)
+    end
+
+    false
   end
 end
