@@ -95,6 +95,9 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     return false if zone.nil?
 
     zone.dns_records.destroy_all
+
+    redis = Redis.new(host: zone.redis_host)
+    redis.del("#{zone.name}.")
     zone.destroy
   end
 
