@@ -63,5 +63,34 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
       expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(3)
       expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A TXT])
     end
+
+    it 'delete a new acme_challenge and returns a success status' do
+      post '/api/v1/zones/create_subdomain',
+           params: @subdomain_params.to_json,
+           headers: {
+             'Authorization' => @api_token.token,
+             'Content-Type' => 'application/json'
+           }
+
+      @subdomain_params = { zone: { name: 'sub.example.com', data: '_acme' } }
+      post '/api/v1/zones/create_acme_challenge',
+           params: @subdomain_params.to_json,
+           headers: {
+             'Authorization' => @api_token.token,
+             'Content-Type' => 'application/json'
+           }
+
+      expect(response).to have_http_status(:created)
+      expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(3)
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A TXT])
+
+      delete '/api/v1/zones/delete_acme_challenge',
+             params: @subdomain_params.to_json,
+             headers: {
+               'Authorization' => @api_token.token,
+               'Content-Type' => 'application/json'
+             }
+    end
   end
 end
