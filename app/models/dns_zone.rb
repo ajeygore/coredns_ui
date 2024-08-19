@@ -102,8 +102,7 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     zone = DnsZone.find_by(name: params[:name])
     return false if zone.nil?
 
-    zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data], ttl: '300')
-    zone.dns_records.create(name: '*', record_type: DnsRecord::A, data: params[:data], ttl: '300')
+    zone.dns_records.create(name: '_acme-challenge', record_type: DnsRecord::A, data: params[:data], ttl: '300')
   end
 
   private
