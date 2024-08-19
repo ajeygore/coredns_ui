@@ -6,7 +6,8 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      post 'zones/create_subdomain', to: 'zones#create_subdomain', as: :create_subdomain
+      post 'zones/create_subdomain', to: 'zones#create_subdomain'
+      post 'zones/create_acme_challenge', to: 'zones#create_acme_challenge'
     end
   end
 

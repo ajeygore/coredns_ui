@@ -10,7 +10,7 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
     @api_token = ApiToken.create!(user: @user, token: SecureRandom.hex(20))
 
     # Define subdomain parameters
-    @subdomain_params = { zone: { name: 'sub.example.com', ip_address: '10.1.1.1' } }
+    @subdomain_params = { zone: { name: 'sub.example.com', data: '10.1.1.1' } }
   end
   context 'with invalid api_token' do
     it 'does not create a new subdomain and returns an unauthorized status' do
@@ -28,7 +28,6 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
 
   context 'with valid api_token' do
     it 'creates a new subdomain and returns a success status' do
-      binding.pry
       post '/api/v1/zones/create_subdomain',
            params: @subdomain_params.to_json,
            headers: {
@@ -41,6 +40,28 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
       expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
       expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A])
       expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:name)).to match_array(%w[* @])
+    end
+
+    it 'creates a new acme_challenge and returns a success status' do
+      post '/api/v1/zones/create_subdomain',
+           params: @subdomain_params.to_json,
+           headers: {
+             'Authorization' => @api_token.token,
+             'Content-Type' => 'application/json'
+           }
+
+      @subdomain_params = { zone: { name: 'sub.example.com', data: '_acme' } }
+      post '/api/v1/zones/create_acme_challenge',
+           params: @subdomain_params.to_json,
+           headers: {
+             'Authorization' => @api_token.token,
+             'Content-Type' => 'application/json'
+           }
+
+      expect(response).to have_http_status(:created)
+      expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(3)
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A TXT])
     end
   end
 end

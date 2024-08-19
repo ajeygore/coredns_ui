@@ -8,11 +8,21 @@ class Api::V1::ZonesController < Api::ApiController
     end
   end
 
+  def create_acme_challenge
+    zone = DnsZone.find_by(name: zone_params[:name])
+    record = zone.dns_records.create(name: '@', record_type: DnsRecord::TXT, data: zone_params[:data], ttl: '300')
+    if record.save
+      render json: { id: record.id, name: record.name, data: record.data }, status: :created
+    else
+      render json: { errors: record.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   # Use callbacks to share common setup or constraints between actions.
 
   def zone_params
-    params.require(:zone).permit(:name, :ip_address) # Replace with actual permitted params
+    params.require(:zone).permit(:name, :data) # Replace with actual permitted params
   end
 end
