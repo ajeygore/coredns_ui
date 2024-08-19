@@ -16,8 +16,9 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
       rel="stylesheet"
     >
     <link
@@ -30,7 +31,7 @@
     <%= javascript_importmap_tags %>
     <style>
       body {
-        font-family: 'Figtree', sans-serif;
+        font-family: 'Open Sans', sans-serif;
       }
     </style>
   </head>
@@ -39,7 +40,7 @@
     <main class="container mx-auto">
       <% if current_user %>
         <nav class="flex items-center justify-between flex-wrap p-2">
-          <span class="text-3xl font-extrabold mt ">Domain Manager</span>
+          <span class="text-3xl font-light text-gray-500 mt ">Domain Manager</span>
           <span>
             <a
               href="/dns_zones"

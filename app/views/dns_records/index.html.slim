@@ -18,7 +18,7 @@ h2 class="text-[#0099ff] text-2xl font-extrabold pb-2 ml-2 mt-4" DNS Records for
 - if @dns_zone.dns_records.any?
   table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
     thead
-      tr
+      tr class="text-blue-700 bg-blue-50"
         th class="bg-blue-100 border text-left px-4 py-2" Type
         th class="bg-blue-100 border text-left px-4 py-2" Name
         th class="bg-blue-100 border text-left px-4 py-2" Data
@@ -27,7 +27,7 @@ h2 class="text-[#0099ff] text-2xl font-extrabold pb-2 ml-2 mt-4" DNS Records for
 
     tbody
       - @dns_zone.dns_records.order("LOWER(name)").each do |record|
-        tr
+        tr class="text-gray-500"
           td class="border px-4 py-2" = record.record_type
           td class="border px-4 py-2" = record.name
           td class="border px-4 py-2" = record.data
