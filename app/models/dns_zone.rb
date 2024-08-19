@@ -90,6 +90,22 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     zone.dns_records.create(name: '*', record_type: DnsRecord::A, data: params[:data], ttl: '300')
   end
 
+  def self.delete_subdomain(params)
+    zone = DnsZone.find_by(name: params[:name])
+    return false if zone.nil?
+
+    zone.dns_records.destroy_all
+    zone.destroy
+  end
+
+  def self.create_acme_challenge(params)
+    zone = DnsZone.find_by(name: params[:name])
+    return false if zone.nil?
+
+    zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data], ttl: '300')
+    zone.dns_records.create(name: '*', record_type: DnsRecord::A, data: params[:data], ttl: '300')
+  end
+
   private
 
   def check_if_subdomain_of_existing_domain

@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       post 'zones/create_subdomain', to: 'zones#create_subdomain'
       post 'zones/create_acme_challenge', to: 'zones#create_acme_challenge'
       delete 'zones/delete_acme_challenge', to: 'zones#delete_acme_challenge'
+      delete 'zones/delete_subdomain', to: 'zones#delete_subdomain'
     end
   end
 

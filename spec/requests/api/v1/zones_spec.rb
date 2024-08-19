@@ -26,7 +26,7 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
     end
   end
 
-  context 'with valid api_token' do
+  context 'with valid api_token' do # rubocop:disable Metrics/BlockLength
     it 'creates a new subdomain and returns a success status' do
       post '/api/v1/zones/create_subdomain',
            params: @subdomain_params.to_json,
@@ -91,6 +91,26 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
                'Authorization' => @api_token.token,
                'Content-Type' => 'application/json'
              }
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
+    end
+
+    it 'should delete the subdomain and return a success status' do
+      post '/api/v1/zones/create_subdomain',
+           params: @subdomain_params.to_json,
+           headers: {
+             'Authorization' => @api_token.token,
+             'Content-Type' => 'application/json'
+           }
+      expect(response).to have_http_status(:created)
+      expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
+      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
+      delete '/api/v1/zones/delete_subdomain',
+             params: @subdomain_params.to_json,
+             headers: {
+               'Authorization' => @api_token.token,
+               'Content-Type' => 'application/json'
+             }
+      expect(DnsZone.find_by(name: 'sub.example.com')).to eq(nil)
     end
   end
 end

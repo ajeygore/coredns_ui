@@ -28,6 +28,14 @@ class Api::V1::ZonesController < Api::ApiController
     end
   end
 
+  def delete_subdomain
+    if DnsZone.delete_subdomain(zone_params)
+      render json: { name: zone_params[:name] }, status: :ok
+    else
+      render json: { errors: zone.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   # Use callbacks to share common setup or constraints between actions.
