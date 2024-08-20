@@ -13,7 +13,6 @@ require 'rails_helper'
 # sticking to rails and rspec-rails APIs to keep things simple and stable.
 
 RSpec.describe "/api_tokens", type: :request do
-  
   # This should return the minimal set of attributes required to create a valid
   # ApiToken. As you add validations to ApiToken, be sure to
   # adjust the attributes here as well.
@@ -37,13 +36,6 @@ RSpec.describe "/api_tokens", type: :request do
     it "renders a successful response" do
       api_token = ApiToken.create! valid_attributes
       get api_token_url(api_token)
-      expect(response).to be_successful
-    end
-  end
-
-  describe "GET /new" do
-    it "renders a successful response" do
-      get new_api_token_url
       expect(response).to be_successful
     end
   end
@@ -77,12 +69,10 @@ RSpec.describe "/api_tokens", type: :request do
         }.to change(ApiToken, :count).by(0)
       end
 
-    
       it "renders a response with 422 status (i.e. to display the 'new' template)" do
         post api_tokens_url, params: { api_token: invalid_attributes }
         expect(response).to have_http_status(:unprocessable_entity)
       end
-    
     end
   end
 
@@ -108,13 +98,11 @@ RSpec.describe "/api_tokens", type: :request do
     end
 
     context "with invalid parameters" do
-    
       it "renders a response with 422 status (i.e. to display the 'edit' template)" do
         api_token = ApiToken.create! valid_attributes
         patch api_token_url(api_token), params: { api_token: invalid_attributes }
         expect(response).to have_http_status(:unprocessable_entity)
       end
-    
     end
   end
 

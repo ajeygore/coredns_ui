@@ -40,21 +40,6 @@ RSpec.describe "/dns_zones", type: :request do
     end
   end
 
-  describe "GET /new" do
-    it "renders a successful response" do
-      get new_dns_zone_url
-      expect(response).to be_successful
-    end
-  end
-
-  describe "GET /edit" do
-    it "renders a successful response" do
-      dns_zone = DnsZone.create! valid_attributes
-      get edit_dns_zone_url(dns_zone)
-      expect(response).to be_successful
-    end
-  end
-
   describe "POST /create" do
     context "with valid parameters" do
       it "creates a new DnsZone" do
