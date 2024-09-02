@@ -5,7 +5,7 @@ p style="color: green" = notice
 h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" = @dns_zone.name
 
 = form_with(model: [@dns_zone, @dns_record]) do |form|
-  div class="ml-2 mr-2 sm:flex-wrap"
+  div class="sm:flex-wrap"
     / = form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
     = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type"
     = form.text_field :name, class: "rounded ml-2", placeholder: "Record Name"
