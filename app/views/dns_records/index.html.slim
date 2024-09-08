@@ -5,15 +5,27 @@ p style="color: green" = notice
 h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" = @dns_zone.name
 
 = form_with(model: [@dns_zone, @dns_record]) do |form|
-  div class="sm:flex-wrap"
-    / = form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
-    = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type"
-    = form.text_field :name, class: "rounded ml-2", placeholder: "Record Name"
-    = form.text_field :data, class: "rounded ml-2 mt-2", placeholder: "Record Value"
-    = form.text_field :ttl, class: "rounded ml-2 mt-2 ", value: "300"
-    = form.submit "Add a record", class: "ml-2 mr-2 mt-2 inline-block font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+  div class="flex ml-2 items-center justify-between gap-4"
+    <div class="flex flex-wrap wrap flex-1 max-w-full gap-2 items-center justify-between">
+      /= form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
 
-h2 class="text-[#0099ff] text-2xl font-extrabold pb-2 ml-2 mt-4" DNS Records for this zone
+      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type"
+
+      <div class="flex-1 flex gap-2">
+        = form.text_field :name, class: "rounded flex-1", placeholder: "Record Name"
+        = form.text_field :data, class: "rounded flex-1", placeholder: "Record Value"
+      </div>
+
+      <div class="flex">
+        = form.text_field :ttl, class: "rounded flex-none w-16", value: "300"
+        <div class="flex-1 grow">
+        </div>
+      </div>
+      <div class="flex">
+        = form.submit "Add a record", class: "grow flex-1 font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+      </div>
+    </div>
+h2 class="text-[#0099ff] text-xl pb-2 ml-2 mt-6 mb-2" DNS Records for this zone
 
 - if @dns_zone.dns_records.any?
   table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
