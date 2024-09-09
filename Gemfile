@@ -85,8 +85,12 @@ end
 # after that rung
 # bundle exec srb typecheck --lsp
 # More about this is here https://sorbet.org/docs/adopting
+#  gem "tapioca", require: false, :group => [:development, :test]
+#  bundle exec tapioca init
 gem "sorbet-static-and-runtime"
 gem "tapioca", require: false, group: %i[development test]
+gem "watchman", require: false, group: %i[development test]
+gem "foreman", require: false, group: %i[development test]
 
 gem "slim-rails"
 
