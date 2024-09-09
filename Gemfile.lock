@@ -459,14 +459,14 @@ DEPENDENCIES
   foreman
   guard
   guard-rubocop
-  httparty (~> 0.22.0)
+  httparty
   importmap-rails
   jbuilder
   omniauth-google-oauth2
-  pry (~> 0.14.2)
-  puma (>= 5.0)
-  rails (~> 7.2.0)
-  redis (>= 4.0.1)
+  pry
+  puma
+  rails
+  redis
   rspec-rails
   rubocop
   rubocop-discourse
@@ -474,10 +474,9 @@ DEPENDENCIES
   ruby-lsp
   shoulda-matchers
   slim-rails
-  sorbet-static-and-runtime
   spring
   sprockets-rails
-  sqlite3 (>= 1.4)
+  sqlite3
   stimulus-rails
   tailwindcss-rails
   tapioca
