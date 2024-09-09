@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     namespace :v1 do
       post 'zones/create_subdomain', to: 'zones#create_subdomain'
       post 'zones/create_acme_challenge', to: 'zones#create_acme_challenge'
+      post 'zones/add_a', to: 'zones#add_a'
       delete 'zones/delete_acme_challenge', to: 'zones#delete_acme_challenge'
       delete 'zones/delete_subdomain', to: 'zones#delete_subdomain'
     end
