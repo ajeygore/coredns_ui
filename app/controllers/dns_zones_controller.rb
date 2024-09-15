@@ -3,7 +3,13 @@ class DnsZonesController < ApplicationController
 
   # GET /dns_zones or /dns_zones.json
   def index
-    @dns_zones = DnsZone.all
+    all_dns_zones = DnsZone.all
+
+    @dns_zones = all_dns_zones.sort_by do |zone|
+      parts = zone.name.split('.')
+      [parts.reverse[0], parts.reverse]
+    end
+
     @dns_record = DnsRecord.new
   end
 

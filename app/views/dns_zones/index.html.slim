@@ -1,6 +1,6 @@
 p style="color: green" = notice
 
-h1 class="text-[#007bff] text-4xl font-extrabold pb-2 border-b-2 border-black"  DNS Zones
+h1 class="text-[#0099ff] text-4xl font-extrabold pb-2 border-b-2 border-black"  DNS Zones
 p
 
 #dns_zones
@@ -9,8 +9,12 @@ p
       tr
         td class="p-2 border-l-0 border-b-2 border-t-0 border-gray-300 text-[#007bff] "
           div class="flex items-center justify-between flex-wrap"
-            span class="text-2xl font-light mt"
-              = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone)
+            - if dns_zone.name.split('.').length==2
+              span class="text-left text-gray-800 font-bold"
+                = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone), class: "text-left font-bold text-gray-700"
+            - else
+              span class="ml-4 text-left text-gray-600"
+                = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone), class: "text-left text-[#0099ff]"
             span
               span class="text-green-700 p-2"
                 = "Redis Host: #{dns_zone.redis_host}"
