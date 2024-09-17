@@ -5,6 +5,7 @@
   vars:
     app_user: "{{ lookup('ansible.builtin.env', 'DEPLOY_USER') }}"
     app_path: "/etc/coredns"
+    app_binary: "/home/{{ app_user }}/coredns-redis/coredns"
   tasks:
     - name: Install Corefile
       copy:
@@ -28,6 +29,7 @@
         dest: /etc/systemd/system/coredns.service
         content: |
           # /etc/systemd/system/coredns.service
+          # This assumes that compiled coredns with redis support exists
 
           [Unit]
           Description=CoreDNS DNS Server
@@ -52,7 +54,7 @@
           WorkingDirectory={{ app_path }}
 
           # ExecStart defines how to start CoreDNS
-          ExecStart=/home/{{ app_user }}/coredns-redis/coredns -conf /etc/coredns/Corefile
+          ExecStart={{ aapp_binary }} -conf /etc/coredns/Corefile
 
           # Restart policy
           Restart=on-failure
