@@ -47,6 +47,7 @@ else
 
   cd ~
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  . "$HOME/.cargo/env"
   sudo rm -rf ruby-3.3.4.tar ruby-3.3.4
   wget "https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.4.tar.gz"
   tar -xzvf ruby-3.3.4.tar.gz
