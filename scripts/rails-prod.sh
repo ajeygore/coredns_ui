@@ -31,7 +31,7 @@ check_env_vars() {
 check_env_vars
 
 export DEBIAN_FRONTEND=noninteractive
-sudo apt-get update
+sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -90,4 +90,4 @@ export PATH="$PATH:~/.ruby/bin"
 cd ~/coredns_ui
 
 
-GEM_HOME=~/.ruby/ PATH="$PATH:~/.ruby/bin" ansible-playbook scripts/rails_prod.yml
+GEM_HOME=~/.ruby/ PATH="$PATH:~/.ruby/bin" ansible-playbook scripts/rails-prod.yml
