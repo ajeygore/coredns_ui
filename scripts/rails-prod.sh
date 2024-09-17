@@ -9,7 +9,7 @@ set -e
 # ----------------------------
 
 # List of required environment variables
-REQUIRED_VARS=("DATABASE_USER" "DATABASE_PASSWORD" "DATABASE" "APP_PORT" "DEPLOY_USER")
+REQUIRED_VARS=("APP_PORT" "DEPLOY_USER")
 
 # Function to check environment variables
 check_env_vars() {
