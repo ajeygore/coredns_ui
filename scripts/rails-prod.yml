@@ -2,40 +2,90 @@
 - name: Install packages and gems on localhost
   hosts: localhost
   become: yes # Use sudo to become the root user
+  vars:
+    app_name: "coredns_ui"
+    app_user: "{{ lookup('ansible.builtin.env', 'DEPLOY_USER') }}"
+    home_path: "/home/{{ app_user }}"
+    app_path: "/home/{{ app_user }}/{{ app_name }}"
+    db_user: "{{ lookup('ansible.builtin.env', 'DATABASE_USER') }}"
+    db_password: "{{ lookup('ansible.builtin.env', 'DATABASE_PASSWORD') }}"
+    db_name: "{{ lookup('ansible.builtin.env', 'DATABASE') }}"
+    db_host: "localhost"
+    puma_port: "{{ lookup('ansible.builtin.env', 'APP_PORT') }}"
+    ruby_release: "3.3"
+    ruby_version: "{{ ruby_release }}.4"
 
   tasks:
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: yes
 
-    - name: Install necessary packages
+    - name: Install dependencies
       ansible.builtin.apt:
         name:
-          - autoconf
-          - bison
-          - bison
-          - build-essential
-          - curl
           - git
-          - inotify-tools
-          - libffi-dev
-          - libgdbm-dev
-          - libncur
-          - libncurses5-dev
+          - curl
           - libpq-dev
-          - libreadline-dev
-          - libreadline-dev
-          - libssl-dev
-          - libssl-dev
-          - libvips
           - libyaml-dev
-          - net-tools
-          - net-tools
-          - openssh-server
+          - libvips
           - pkg-config
-          - screen
-          - wireguard
+          - openssh-server
+          - net-tools
+          - libssl-dev
+          - libreadline-dev
           - zlib1g-dev
-
+          - libffi-dev
+          - libffi8
+          - redis-server
+          - redis-tools
         state: present
-        update_cache: yes
+
+    - name: Install Bundler gem
+      gem:
+        name: bundler
+        state: present
+
+    - name: Install Bundler
+      command: bundle install chdir={{ app_path }}
+
+    - name: Create Puma configuration file
+      copy:
+        dest: "{{ app_path }}/config/puma.rb"
+        content: |
+          workers ENV.fetch("WEB_CONCURRENCY") { 2 }
+          threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
+          threads threads_count, threads_count
+          preload_app!
+          port ENV.fetch("PORT") { {{ puma_port }} }
+          environment ENV.fetch("RAILS_ENV") { "production" }
+          on_worker_boot do
+            ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+          end
+
+    - name: Create systemd service for Puma
+      copy:
+        dest: /etc/systemd/system/coredns_ui.service
+        content: |
+          [Unit]
+          Description=Puma HTTP Server
+          After=network.target
+
+          [Service]
+          Type=simple
+          User={{ app_user }}
+          WorkingDirectory={{ app_path }}
+          ExecStart=/usr/local/bin/bundle exec puma -C {{ app_path }}/config/puma.rb
+          Restart=always
+          Environment=RAILS_ENV=production
+          Environment=GATE_DATABASE_USER={{ lookup('ansible.builtin.env', 'GATE_DATABASE_USER') }}
+          Environment=GATE_DATABASE_PASSWORD={{ lookup('ansible.builtin.env', 'GATE_DATABASE_PASSWORD') }}
+          Environment=GATE_DATABASE={{ lookup('ansible.builtin.env', 'GATE_DATABASE') }}
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start Puma
+      systemd:
+        name: coredns_ui
+        enabled: yes
+        state: started

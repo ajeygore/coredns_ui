@@ -28,4 +28,4 @@ test:
 # ensure the database is located in a persisted volume.
 production:
   <<: *default
-  database: <%= ENV['DATABASE_URL'] %>
+  database: storage/production.sqlite3
