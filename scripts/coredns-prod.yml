@@ -54,7 +54,7 @@
           WorkingDirectory={{ app_path }}
 
           # ExecStart defines how to start CoreDNS
-          ExecStart={{ aapp_binary }} -conf /etc/coredns/Corefile
+          ExecStart={{ app_binary }} -conf /etc/coredns/Corefile
 
           # Restart policy
           Restart=on-failure
