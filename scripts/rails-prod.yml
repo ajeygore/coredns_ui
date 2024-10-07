@@ -80,6 +80,7 @@
           Environment=DATABASE_USER={{ lookup('ansible.builtin.env', 'DATABASE_USER') }}
           Environment=DATABASE_PASSWORD={{ lookup('ansible.builtin.env', 'DATABASE_PASSWORD') }}
           Environment=DATABASE_NAME={{ lookup('ansible.builtin.env', 'DATABASE_NAME') }}
+          Environment=GEM_HOME=/home/{{ app_user }}/.ruby
 
           [Install]
           WantedBy=multi-user.target
