@@ -1,5 +1,6 @@
 class DnsRecordsController < ApplicationController
   before_action :set_dns_zone
+  before_action :strip_whitespace_params, only: [:create]
 
   def create # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     @dns_record = @dns_zone.dns_records.new(dns_record_params)
@@ -42,6 +43,11 @@ class DnsRecordsController < ApplicationController
 
   def set_dns_zone
     @dns_zone = DnsZone.find(params[:dns_zone_id])
+  end
+
+  def strip_whitespace_params
+    params[:dns_record][:name].strip! if params[:dns_record][:name]
+    params[:dns_record][:data].strip! if params[:dns_record][:data]
   end
 
   def dns_record_params
