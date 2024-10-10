@@ -1,5 +1,6 @@
 class DnsRecord < ApplicationRecord
   belongs_to :dns_zone
+  before_validation :strip_whitespace
   validates :name, presence: true
   validates :data, presence: true
   validates :record_type, presence: true
@@ -76,5 +77,12 @@ class DnsRecord < ApplicationRecord
       ]
     }
     REDIS.hset(zone_name, name, record.to_json)
+  end
+
+  private
+
+  def strip_whitespace
+    self.name = name.strip unless name.nil?
+    self.data = data.strip unless data.nil?
   end
 end
