@@ -51,4 +51,17 @@ RSpec.describe DnsRecord, type: :model do
     zone_data = { ns: [dns_record_www1_data] }
     expect(zone_data).to eq(dns_zone.prepare_records('www1'))
   end
+
+  it "creates and processes a CNAME record correctly" do
+    dns_zone = DnsZone.create!(name: 'example.com', redis_host: 'localhost')
+    cname_record = dns_zone.dns_records.create!(name: 'alias', record_type: DnsRecord::CNAME, data: "canonical.example.com")
+    
+    # Check that the record is valid and exists
+    expect(dns_zone.dns_records.count).to eq(1)
+    expect(cname_record.record_type).to eq("CNAME")
+    
+    # Test the helper method from the zone
+    prepared_cname = dns_zone.prepare_cname('alias')
+    expect(prepared_cname).to eq({ cname: "canonical.example.com", ttl: 300 })
+  end
 end

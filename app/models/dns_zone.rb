@@ -33,10 +33,12 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     a = prepare_a record_name
     ns = prepare_ns record_name
     txt = prepare_txt record_name
+    cname = prepare_cname record_name
     response_hash = {}
     response_hash[:a] = a unless a.nil?
     response_hash[:ns] = ns unless ns.nil?
     response_hash[:txt] = txt unless txt.nil?
+    response_hash[:cname] = cname unless cname.nil?
 
     response_hash
   end
@@ -82,6 +84,14 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
       txt << { text: record.data, ttl: record.time_to_live.to_i }
     end
     txt
+  end
+
+  def prepare_cname(record_name)
+    records = dns_records.where(name: record_name, record_type: DnsRecord::CNAME)
+    # For CNAME, typically there should be only one record.
+    return nil if records.empty?
+    record = records.first
+    { cname: record.data, ttl: record.time_to_live.to_i }
   end
 
   def self.create_subdomain(params)
