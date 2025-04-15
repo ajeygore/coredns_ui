@@ -9,7 +9,7 @@ h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml
     <div class="flex flex-wrap wrap flex-1 max-w-full gap-2 items-center justify-between">
       /= form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
 
-      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type"
+      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type"
 
       <div class="flex-1 flex gap-2">
         = form.text_field :name, class: "rounded flex-1", placeholder: "Record Name"

@@ -57,6 +57,28 @@ class DnsRecord < ApplicationRecord
     a
   end
 
+  def add_cname
+    # For a CNAME record, the data should be the canonical domain name.
+    existing_record = dns_zone.dns_records.find_by(name: name, record_type: DnsRecord::CNAME)
+    if existing_record.present?
+      raise "CNAME record for '#{name}' already exists with data '#{existing_record.data}'"
+    end
+
+    record = { cname: data, ttl: time_to_live.to_i }
+    zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
+    redis = Redis.new(host: dns_zone.redis_host)
+    redis.hset(zone_name, name, record.to_json)
+  end
+
+  def prepare_cname
+    records = dns_zone.dns_records.where(name: name, record_type: DnsRecord::CNAME)
+    # In standard DNS, there should be one CNAME per alias.
+    if records.present?
+      record = records.first
+      { cname: record.data, ttl: record.time_to_live.to_i }
+    end
+  end
+
   def del_a
     zone_name = dns_zone.name
     zone_name += '.' unless dns_zone.name.end_with?('.')
