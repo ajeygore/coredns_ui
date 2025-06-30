@@ -91,7 +91,7 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     # For CNAME, typically there should be only one record.
     return nil if records.empty?
     record = records.first
-    { cname: record.data, ttl: record.time_to_live.to_i }
+    record.data
   end
 
   def self.create_subdomain(params)
