@@ -33,12 +33,17 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     a = prepare_a record_name
     ns = prepare_ns record_name
     txt = prepare_txt record_name
-    cname = prepare_cname record_name
+    cname_data = prepare_cname record_name
     response_hash = {}
     response_hash[:a] = a unless a.nil?
     response_hash[:ns] = ns unless ns.nil?
     response_hash[:txt] = txt unless txt.nil?
-    response_hash[:cname] = cname unless cname.nil?
+    
+    unless cname_data.nil?
+      cname_record = dns_records.where(name: record_name, record_type: DnsRecord::CNAME).first
+      response_hash[:cname] = cname_data
+      response_hash[:ttl] = cname_record.time_to_live.to_i
+    end
 
     response_hash
   end
