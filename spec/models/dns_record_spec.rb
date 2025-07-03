@@ -1,4 +1,5 @@
 require 'rails_helper'
+require 'resolv'
 
 RSpec.describe DnsRecord, type: :model do
   it "should add a dns record of type a" do
@@ -80,6 +81,9 @@ RSpec.describe DnsRecord, type: :model do
     let(:dns_zone) { DnsZone.create!(name: 'example.com', redis_host: 'localhost') }
     
     it "handles complete CNAME lifecycle from creation to retrieval" do
+      # Mock DNS resolution
+      allow(Resolv).to receive(:getaddress).with('cdn.vercel-dns.com.').and_return('76.76.21.21')
+      
       # Step 1: Create a CNAME record
       cname_record = dns_zone.dns_records.create!(
         name: 'cdn', 
@@ -100,7 +104,8 @@ RSpec.describe DnsRecord, type: :model do
       # Step 3: Test prepare_records method (full structure - array format for CoreDNS)
       records = dns_zone.prepare_records('cdn')
       expect(records).to eq({
-        cname: [{ host: 'cdn.vercel-dns.com.', ttl: 300 }]
+        cname: [{ host: 'cdn.vercel-dns.com.', ttl: 300 }],
+        a: [{ ip: '76.76.21.21', ttl: 300 }]
       })
       
       # Step 4: Test that non-existent records return nil
@@ -108,6 +113,8 @@ RSpec.describe DnsRecord, type: :model do
       expect(dns_zone.prepare_records('nonexistent')).to eq({})
       
       # Step 5: Test with custom TTL
+      allow(Resolv).to receive(:getaddress).with('custom.example.com.').and_return('192.168.1.1')
+      
       custom_cname = dns_zone.dns_records.create!(
         name: 'custom',
         record_type: DnsRecord::CNAME,
@@ -117,7 +124,8 @@ RSpec.describe DnsRecord, type: :model do
       
       custom_records = dns_zone.prepare_records('custom')
       expect(custom_records).to eq({
-        cname: [{ host: 'custom.example.com.', ttl: 600 }]
+        cname: [{ host: 'custom.example.com.', ttl: 600 }],
+        a: [{ ip: '192.168.1.1', ttl: 600 }]
       })
       
       # Step 6: Test that prepare_cname returns the first CNAME when multiple exist
@@ -134,6 +142,9 @@ RSpec.describe DnsRecord, type: :model do
     end
     
     it "ensures CNAME records work correctly with zone refresh" do
+      # Mock DNS resolution
+      allow(Resolv).to receive(:getaddress).with('api.vercel-dns.com.').and_return('1.2.3.4')
+      
       # Create CNAME record
       dns_zone.dns_records.create!(
         name: 'api',
@@ -151,7 +162,7 @@ RSpec.describe DnsRecord, type: :model do
       expect(redis_mock).to receive(:hset).with(
         'example.com.',
         'api',
-        { cname: [{ host: 'api.vercel-dns.com.', ttl: 600 }] }.to_json
+        { cname: [{ host: 'api.vercel-dns.com.', ttl: 600 }], a: [{ ip: '1.2.3.4', ttl: 600 }] }.to_json
       )
       
       # Trigger refresh
@@ -159,6 +170,9 @@ RSpec.describe DnsRecord, type: :model do
     end
     
     it "handles CNAME mixed with other record types correctly" do
+      # Mock DNS resolution
+      allow(Resolv).to receive(:getaddress).with('blog.github.io.').and_return('5.6.7.8')
+      
       # Create CNAME record
       dns_zone.dns_records.create!(
         name: 'blog',
@@ -176,7 +190,8 @@ RSpec.describe DnsRecord, type: :model do
       # Test CNAME retrieval (array format)
       blog_records = dns_zone.prepare_records('blog')
       expect(blog_records).to eq({
-        cname: [{ host: 'blog.github.io.', ttl: 300 }]
+        cname: [{ host: 'blog.github.io.', ttl: 300 }],
+        a: [{ ip: '5.6.7.8', ttl: 300 }]
       })
       
       # Test A record retrieval
@@ -194,6 +209,9 @@ RSpec.describe DnsRecord, type: :model do
     let(:dns_zone) { DnsZone.create!(name: 'soranova.ai', redis_host: 'localhost') }
 
     it "generates CNAME records in the exact format that CoreDNS expects" do
+      # Mock DNS resolution
+      allow(Resolv).to receive(:getaddress).with('cname.vercel-dns.com.').and_return('76.76.21.21')
+      
       # Create a CNAME record like the docs.soranova.ai example
       cname_record = dns_zone.dns_records.create!(
         name: 'docs',
@@ -205,13 +223,14 @@ RSpec.describe DnsRecord, type: :model do
       # Test the prepared records format
       records = dns_zone.prepare_records('docs')
       expected_format = {
-        cname: [{ host: 'cname.vercel-dns.com.', ttl: 300 }]
+        cname: [{ host: 'cname.vercel-dns.com.', ttl: 300 }],
+        a: [{ ip: '76.76.21.21', ttl: 300 }]
       }
       expect(records).to eq(expected_format)
 
       # Test JSON serialization matches what we store in Redis
       json_string = records.to_json
-      expect(json_string).to eq('{"cname":[{"host":"cname.vercel-dns.com.","ttl":300}]}')
+      expect(json_string).to eq('{"cname":[{"host":"cname.vercel-dns.com.","ttl":300}],"a":[{"ip":"76.76.21.21","ttl":300}]}')
 
       # Test that parsing this JSON back gives us the expected structure
       parsed = JSON.parse(json_string)
@@ -283,6 +302,9 @@ RSpec.describe DnsRecord, type: :model do
     end
 
     it "simulates the exact Redis storage and retrieval that fixed the CoreDNS issue" do
+      # Mock DNS resolution
+      allow(Resolv).to receive(:getaddress).with('cname.vercel-dns.com.').and_return('76.76.21.21')
+      
       # This test replicates the exact scenario that was failing
       dns_zone.dns_records.create!(
         name: 'docs',
@@ -296,8 +318,8 @@ RSpec.describe DnsRecord, type: :model do
       allow(Redis).to receive(:new).and_return(redis_mock)
       expect(redis_mock).to receive(:del).with('soranova.ai.')
       
-      # This is the exact format that CoreDNS now accepts (array format)
-      expected_redis_value = '{"cname":[{"host":"cname.vercel-dns.com.","ttl":300}]}'
+      # This is the exact format that CoreDNS now accepts (array format) with resolved A record
+      expected_redis_value = '{"cname":[{"host":"cname.vercel-dns.com.","ttl":300}],"a":[{"ip":"76.76.21.21","ttl":300}]}'
       expect(redis_mock).to receive(:hset).with('soranova.ai.', 'docs', expected_redis_value)
 
       # Trigger the refresh that stores to Redis
@@ -306,6 +328,7 @@ RSpec.describe DnsRecord, type: :model do
       # Verify that if we parse this back, it has the correct structure
       parsed = JSON.parse(expected_redis_value)
       expect(parsed['cname']).to be_a(Array)
+      expect(parsed['a']).to be_a(Array)
       
       # This format should NOT cause the CoreDNS error:
       # "json: cannot unmarshal object into Go struct field Record.cname of type []redis.CNAME_Record"

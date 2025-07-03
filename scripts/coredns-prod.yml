@@ -12,6 +12,7 @@
         dest: "{{ app_path }}//Corefile"
         content: |
           . {
+              any
               log
               health :8053
               errors
@@ -23,6 +24,7 @@
                       read_timeout 200
               }
               forward . 8.8.8.8 8.8.4.4
+              cache 30 
           }
 
     - name: Create systemd service for coredns

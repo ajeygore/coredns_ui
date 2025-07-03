@@ -45,6 +45,13 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
         host: cname_data,
         ttl: cname_record.time_to_live.to_i
       }]
+      
+      # Add A record with resolved IP for CNAME
+      resolved_ip = resolve_cname_to_ip(cname_data)
+      if resolved_ip
+        response_hash[:a] = [] if response_hash[:a].nil?
+        response_hash[:a] << { ip: resolved_ip, ttl: cname_record.time_to_live.to_i }
+      end
     end
 
     response_hash
@@ -128,6 +135,16 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
   end
 
   private
+
+  def resolve_cname_to_ip(hostname)
+    require 'resolv'
+    begin
+      Resolv.getaddress(hostname)
+    rescue Resolv::ResolvError, StandardError => e
+      Rails.logger.warn("Failed to resolve CNAME #{hostname}: #{e.message}")
+      nil
+    end
+  end
 
   def check_if_subdomain_of_existing_domain
     unless parent_domain_exists?
