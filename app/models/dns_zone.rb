@@ -41,10 +41,10 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     
     unless cname_data.nil?
       cname_record = dns_records.where(name: record_name, record_type: DnsRecord::CNAME).first
-      response_hash[:cname] = {
+      response_hash[:cname] = [{
         host: cname_data,
         ttl: cname_record.time_to_live.to_i
-      }
+      }]
     end
 
     response_hash
