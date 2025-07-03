@@ -22,6 +22,7 @@
                       connect_timeout 200
                       read_timeout 200
               }
+              forward . 8.8.8.8 8.8.4.4
           }
 
     - name: Create systemd service for coredns
