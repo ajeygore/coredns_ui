@@ -66,7 +66,7 @@ RSpec.describe DnsRecord, type: :model do
     
     # Test the complete record structure
     prepared_records = dns_zone.prepare_records('alias')
-    expect(prepared_records).to eq({ cname: "canonical.example.com", ttl: 300 })
+    expect(prepared_records).to eq({ cname: { host: "canonical.example.com", ttl: 300 } })
   end
 
   describe "CNAME record end-to-end flow" do
@@ -93,8 +93,7 @@ RSpec.describe DnsRecord, type: :model do
       # Step 3: Test prepare_records method (full structure)
       records = dns_zone.prepare_records('cdn')
       expect(records).to eq({
-        cname: 'cdn.vercel-dns.com.',
-        ttl: 300
+        cname: { host: 'cdn.vercel-dns.com.', ttl: 300 }
       })
       
       # Step 4: Test that non-existent records return nil
@@ -111,8 +110,7 @@ RSpec.describe DnsRecord, type: :model do
       
       custom_records = dns_zone.prepare_records('custom')
       expect(custom_records).to eq({
-        cname: 'custom.example.com.',
-        ttl: 600
+        cname: { host: 'custom.example.com.', ttl: 600 }
       })
       
       # Step 6: Test that prepare_cname returns the first CNAME when multiple exist
@@ -146,7 +144,7 @@ RSpec.describe DnsRecord, type: :model do
       expect(redis_mock).to receive(:hset).with(
         'example.com.',
         'api',
-        { cname: 'api.vercel-dns.com.', ttl: 600 }.to_json
+        { cname: { host: 'api.vercel-dns.com.', ttl: 600 } }.to_json
       )
       
       # Trigger refresh
@@ -171,8 +169,7 @@ RSpec.describe DnsRecord, type: :model do
       # Test CNAME retrieval
       blog_records = dns_zone.prepare_records('blog')
       expect(blog_records).to eq({
-        cname: 'blog.github.io.',
-        ttl: 300
+        cname: { host: 'blog.github.io.', ttl: 300 }
       })
       
       # Test A record retrieval
