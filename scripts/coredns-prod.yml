@@ -21,6 +21,7 @@
                       ttl 10
                       connect_timeout 200
                       read_timeout 200
+                      fallthrough
               }
               forward . 8.8.8.8 8.8.4.4
           }
