@@ -12,6 +12,7 @@
         dest: "{{ app_path }}//Corefile"
         content: |
           . {
+              any
               log
               health :8053
               errors
