@@ -6,27 +6,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
     <%= yield :head %>
-
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
-      rel="stylesheet"
-    >
-    <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap"
-      rel="stylesheet"
-    >
-
-    <%= stylesheet_link_tag "tailwind", "inter-font", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <style>
@@ -35,53 +20,25 @@
       }
     </style>
   </head>
-
   <body class="<%= yield(:body_class) || 'bg-gray-200' %>">
     <main class="container mx-auto">
-      <% if current_user %>
-        <nav
-          class="
-            flex gap-2 items-center justify-between flex-wrap p-2 bg-gray-100 rounded-md
-            mt-2
-          "
-        >
-          <div class="font-bold text-gray-700">Domain Manager</div>
-          <div class=" flex grow justify-end gap-4 text-gray-600 text-sm ">
-            <a
-              href="/dns_zones"
-              class="
-                hover:text-black hover:decoration-dotted hover:underline
-                hover:underline-offset-4
-              "
-            >
-              Zones
-            </a>
-
-            <a
-              href="/api_tokens"
-              class="
-                hover:text-black hover:decoration-dotted hover:underline
-                hover:underline-offset-4
-              "
-            >
-              API Tokens
-            </a>
-
-            <%= link_to "Logout (#{current_user.name})",
-            logout_path,
-            method: :delete,
-            data: {
-              turbo: false,
-            },
-            class: "text-red-500 hover:text-gray-700 extrabold" %>
-
+      <% if current_user.present? %>
+        <nav class="flex gap-2 items-center justify-between flex-wrap p-2 bg-gray-100 rounded-md
+mt-2">
+          <div class="font-bold text-gray-700">
+            Domain Manager
+          </div>
+          <div class="flex grow justify-end gap-4 text-gray-600 text-sm">
+            <%= link_to "Zones", dns_zones_path, class: "hover:text-black hover:decoration-dotted hover:underline
+hover:underline-offset-4" %>
+            <%= link_to "API", api_tokens_path, class: "hover:text-black hover:decoration-dotted hover:underline
+hover:underline-offset-4" %>
+            <%= link_to "Logout (#{current_user.name})", logout_path, method: :delete, class: "hover:text-red-600 transition" %>
           </div>
         </nav>
       <% end %>
-
-      <div class="container max-w-6xl mx-auto mt-10 p-2">
-        <%= yield %>
-      </div>
+      <!-- Main Content -->
+      <%= yield %>
     </main>
   </body>
 </html>

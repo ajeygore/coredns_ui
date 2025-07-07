@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_08_17_171455) do
+ActiveRecord::Schema[8.0].define(version: 2024_08_17_171455) do
   create_table "api_tokens", force: :cascade do |t|
     t.string "token"
     t.integer "user_id", null: false
