@@ -7,4 +7,4 @@ end
 OmniAuth.config.allowed_request_methods = %i[get]
 
 # need to add this to .env file for google oauth in production environment
-OmniAuth.config.full_host = Rails.env.production? ? ENV.fetch('APP_PUBLIC_FQDN') : 'http://localhost:3000'
+OmniAuth.config.full_host = Rails.env.production? ? "https://#{ENV.fetch('APP_PUBLIC_FQDN')}" : 'http://localhost:3000'
