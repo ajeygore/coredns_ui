@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
+class DnsZone < ApplicationRecord
   has_many :dns_records, dependent: :destroy
   validates_uniqueness_of :name
   # before_validation :check_if_subdomain_of_existing_domain, on: :create
@@ -33,19 +33,21 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     a = prepare_a record_name
     ns = prepare_ns record_name
     txt = prepare_txt record_name
+    mx = prepare_mx record_name
     cname_data = prepare_cname record_name
     response_hash = {}
     response_hash[:a] = a unless a.nil?
     response_hash[:ns] = ns unless ns.nil?
     response_hash[:txt] = txt unless txt.nil?
-    
+    response_hash[:mx] = mx unless mx.nil?
+
     unless cname_data.nil?
       cname_record = dns_records.where(name: record_name, record_type: DnsRecord::CNAME).first
       response_hash[:cname] = [{
         host: cname_data,
         ttl: cname_record.time_to_live.to_i
       }]
-      
+
       # Add A record with resolved IP for CNAME
       resolved_ip = resolve_cname_to_ip(cname_data)
       if resolved_ip
@@ -64,8 +66,7 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     redis.hset("#{name}.", record_name, record.to_json) if record.count.positive?
   end
 
-  def zone_name_add_acme_challenge
-  end
+  def zone_name_add_acme_challenge; end
 
   def prepare_a(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::A)
@@ -104,16 +105,35 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
     records = dns_records.where(name: record_name, record_type: DnsRecord::CNAME)
     # For CNAME, typically there should be only one record.
     return nil if records.empty?
+
     record = records.first
     record.data
   end
 
+  def prepare_mx(record_name)
+    records = dns_records.where(name: record_name, record_type: DnsRecord::MX)
+    return nil if records.count.zero?
+
+    mx = []
+    records.each do |record|
+      parts = record.data.split(' ', 2)
+      priority = Integer(parts[0])
+      host = parts[1]
+      mx << { priority: priority, host: host, ttl: record.time_to_live.to_i }
+    end
+    mx
+  end
+
   def self.create_subdomain(params)
     zone = DnsZone.create(name: params[:name], redis_host: 'localhost')
-    zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data],
-                            ttl: '300') if params[:data].present?
+    if params[:data].present?
+      zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data],
+                              ttl: '300')
+    end
+    return unless params[:data].present?
+
     zone.dns_records.create(name: '*', record_type: DnsRecord::A, data: params[:data],
-                            ttl: '300') if params[:data].present?
+                            ttl: '300')
   end
 
   def self.delete_subdomain(params)
@@ -147,9 +167,9 @@ class DnsZone < ApplicationRecord # rubocop:disable Style/Documentation
   end
 
   def check_if_subdomain_of_existing_domain
-    unless parent_domain_exists?
-      errors.add(:base, "The domain '#{name}' is not a subdomain of an existing domain")
-    end
+    return if parent_domain_exists?
+
+    errors.add(:base, "The domain '#{name}' is not a subdomain of an existing domain")
   end
 
   def parent_domain_exists?

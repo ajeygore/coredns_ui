@@ -5,6 +5,7 @@ class DnsRecord < ApplicationRecord
   validates :data, presence: true
   validates :record_type, presence: true
   validates :name, uniqueness: { scope: %i[data dns_zone_id], message: 'already exists' }
+  validate :validate_mx_record_format, if: -> { record_type == MX }
 
   A = 'A'.freeze
   AAAA = 'AAAA'.freeze
@@ -60,9 +61,7 @@ class DnsRecord < ApplicationRecord
   def add_cname
     # For a CNAME record, the data should be the canonical domain name.
     existing_record = dns_zone.dns_records.find_by(name: name, record_type: DnsRecord::CNAME)
-    if existing_record.present?
-      raise "CNAME record for '#{name}' already exists with data '#{existing_record.data}'"
-    end
+    raise "CNAME record for '#{name}' already exists with data '#{existing_record.data}'" if existing_record.present?
 
     record = { cname: data, ttl: time_to_live.to_i }
     zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
@@ -73,10 +72,10 @@ class DnsRecord < ApplicationRecord
   def prepare_cname
     records = dns_zone.dns_records.where(name: name, record_type: DnsRecord::CNAME)
     # In standard DNS, there should be one CNAME per alias.
-    if records.present?
-      record = records.first
-      { cname: record.data, ttl: record.time_to_live.to_i }
-    end
+    return unless records.present?
+
+    record = records.first
+    { cname: record.data, ttl: record.time_to_live.to_i }
   end
 
   def del_a
@@ -101,10 +100,73 @@ class DnsRecord < ApplicationRecord
     REDIS.hset(zone_name, name, record.to_json)
   end
 
+  def add_mx
+    priority, host = parse_mx_data
+    record = { mx: [{ priority: priority, host: host, ttl: time_to_live.to_i }] }
+    zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
+    redis = Redis.new(host: dns_zone.redis_host)
+    redis.hset(zone_name, name, record.to_json)
+  end
+
+  def mx_priority
+    return nil unless record_type == MX
+    parse_mx_data[0]
+  end
+
+  def mx_host
+    return nil unless record_type == MX
+    parse_mx_data[1]
+  end
+
   private
 
   def strip_whitespace
     self.name = name.strip unless name.nil?
     self.data = data.strip unless data.nil?
+  end
+
+  def validate_mx_record_format
+    return if data.blank?
+
+    parts = data.split(' ', 2)
+
+    if parts.length != 2
+      errors.add(:data, 'must be in format "priority hostname" (e.g., "10 mail.example.com")')
+      return
+    end
+
+    priority_str, hostname = parts
+
+    # Validate priority is a number
+    begin
+      priority = Integer(priority_str)
+    rescue ArgumentError
+      errors.add(:data, 'priority must be a number')
+      return
+    end
+
+    # Validate priority range
+    unless priority.between?(0, 65_535)
+      errors.add(:data, 'priority must be between 0 and 65535')
+      return
+    end
+
+    # Validate hostname format
+    if hostname.length > 255
+      errors.add(:data, 'hostname is too long (maximum 255 characters)')
+      return
+    end
+
+    # Basic hostname validation - no invalid characters
+    return if hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
+
+    errors.add(:data, 'hostname contains invalid characters')
+  end
+
+  def parse_mx_data
+    parts = data.split(' ', 2)
+    priority = Integer(parts[0])
+    host = parts[1]
+    [priority, host]
   end
 end
