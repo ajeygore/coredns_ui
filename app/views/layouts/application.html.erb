@@ -11,34 +11,53 @@
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <style>
       body {
-        font-family: 'Open Sans', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
       }
     </style>
   </head>
-  <body class="<%= yield(:body_class) || 'bg-gray-200' %>">
-    <main class="container mx-auto">
+  <body class="<%= yield(:body_class) || 'bg-gray-50 min-h-screen' %>">
+    <main class="<%= current_user.present? ? 'container mx-auto' : '' %>">
       <% if current_user.present? %>
-        <nav class="flex gap-2 items-center justify-between flex-wrap p-2 bg-gray-100 rounded-md
-mt-2">
-          <div class="font-bold text-gray-700">
-            Domain Manager
-          </div>
-          <div class="flex grow justify-end gap-4 text-gray-600 text-sm">
-            <%= link_to "Zones", dns_zones_path, class: "hover:text-black hover:decoration-dotted hover:underline
-hover:underline-offset-4" %>
-            <%= link_to "API", api_tokens_path, class: "hover:text-black hover:decoration-dotted hover:underline
-hover:underline-offset-4" %>
-            <%= link_to "Logout (#{current_user.name})", logout_path, method: :delete, class: "hover:text-red-600 transition" %>
+        <nav class="bg-white border-b border-gray-200 shadow-sm">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 flex items-center">
+                  <svg class="h-8 w-8 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2L3 7v11h4v-6h6v6h4V7l-7-5z"/>
+                  </svg>
+                  <span class="font-bold text-xl text-gray-900">Domain Manager</span>
+                </div>
+              </div>
+              
+              <div class="flex items-center space-x-8">
+                <%= link_to "DNS Zones", dns_zones_path, class: "text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-blue-600" %>
+                <%= link_to "API Tokens", api_tokens_path, class: "text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-blue-600" %>
+                
+                <div class="flex items-center space-x-4 ml-6 pl-6 border-l border-gray-200">
+                  <span class="text-sm text-gray-700">Welcome, <%= current_user.name %></span>
+                  <%= link_to "Sign Out", logout_path, method: :delete, 
+                      class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200" %>
+                </div>
+              </div>
+            </div>
           </div>
         </nav>
+        
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <%= yield %>
+        </div>
+      <% else %>
+        <%= yield %>
       <% end %>
-      <!-- Main Content -->
-      <%= yield %>
     </main>
   </body>
 </html>
