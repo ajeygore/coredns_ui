@@ -125,7 +125,7 @@ class DnsZone < ApplicationRecord
   end
 
   def self.create_subdomain(params)
-    zone = DnsZone.create(name: params[:name], redis_host: 'localhost')
+    zone = DnsZone.create(name: params[:name], redis_host: ENV.fetch('REDIS_HOST', 'localhost'))
     if params[:data].present?
       zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data],
                               ttl: '300')

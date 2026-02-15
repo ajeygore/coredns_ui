@@ -1,0 +1,119 @@
+---
+- name: Deploy CoreDNS UI
+  hosts: all
+  become: yes
+  vars:
+    deploy_user: "{{ ansible_user }}"
+    app_dir: "/home/{{ deploy_user }}/coredns_ui"
+    repo_url: "https://github.com/ajeygore/coredns_ui.git"
+    repo_branch: main
+
+  tasks:
+    # ----------------------------------------------------------------
+    # 1. Install Docker (official method for Ubuntu/Debian)
+    # ----------------------------------------------------------------
+    - name: Install prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - git
+        state: present
+        update_cache: yes
+
+    - name: Create apt keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Add Docker GPG key
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: Add Docker apt repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Install Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add deploy user to docker group
+      user:
+        name: "{{ deploy_user }}"
+        groups: docker
+        append: yes
+
+    # ----------------------------------------------------------------
+    # 2. Clone repo and configure
+    # ----------------------------------------------------------------
+    - name: Clone repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_branch }}"
+        force: yes
+      become_user: "{{ deploy_user }}"
+
+    - name: Copy env file
+      copy:
+        src: /tmp/coredns-ui.env
+        dest: "{{ app_dir }}/.env"
+        remote_src: yes
+        owner: "{{ deploy_user }}"
+        mode: "0600"
+
+    - name: Generate RAILS_MASTER_KEY if not present in env
+      shell: |
+        grep -q '^RAILS_MASTER_KEY=' "{{ app_dir }}/.env" || echo "RAILS_MASTER_KEY=$(openssl rand -hex 16)" >> "{{ app_dir }}/.env"
+
+    - name: Clean up temp env file
+      file:
+        path: /tmp/coredns-ui.env
+        state: absent
+
+    # ----------------------------------------------------------------
+    # 3. Build and start
+    # ----------------------------------------------------------------
+    - name: Build and start all services
+      command: docker compose -f docker-compose.prod.yml up -d --build
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Wait for app to become healthy
+      uri:
+        url: "http://localhost:{{ lookup('env', 'APP_PORT') | default('3000', true) }}/up"
+        status_code: 200
+      register: health
+      retries: 30
+      delay: 5
+      until: health.status == 200
+      ignore_errors: yes
+
+    - name: Show running containers
+      command: docker compose -f docker-compose.prod.yml ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+
+    - name: Display service status
+      debug:
+        msg: "{{ compose_ps.stdout_lines }}"

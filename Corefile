@@ -1,0 +1,15 @@
+. {
+    any
+    log
+    health :8053
+    errors
+    reload
+    redis {
+            address redis:6379
+            ttl 10
+            connect_timeout 200
+            read_timeout 200
+    }
+    forward . 8.8.8.8 8.8.4.4
+    cache 30
+}

@@ -1,0 +1,28 @@
+FROM golang:1.23-alpine AS builder
+
+RUN apk add --no-cache git make
+
+ARG COREDNS_VERSION=v1.12.0
+
+RUN git clone --depth 1 --branch ${COREDNS_VERSION} https://github.com/coredns/coredns.git /coredns
+
+WORKDIR /coredns
+
+# Add Redis plugin (after cache in plugin load order)
+RUN sed -i '/^cache:cache/a redis:github.com/arvancloud/redis' plugin.cfg
+
+RUN make
+
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates && \
+    adduser -D -H coredns
+
+COPY --from=builder /coredns/coredns /usr/local/bin/coredns
+
+USER coredns
+
+EXPOSE 53 53/udp 8053
+
+ENTRYPOINT ["coredns"]
+CMD ["-conf", "/etc/coredns/Corefile"]

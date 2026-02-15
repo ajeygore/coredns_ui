@@ -22,7 +22,7 @@ class DnsZonesController < ApplicationController
   # GET /dns_zones/new
   def new
     @dns_zone = DnsZone.new
-    @dns_zone.redis_host = 'localhost'
+    @dns_zone.redis_host = ENV.fetch('REDIS_HOST', 'localhost')
   end
 
   # GET /dns_zones/1/edit
