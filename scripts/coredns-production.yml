@@ -119,34 +119,13 @@
         state: present
 
     # ----------------------------------------------------------------
-    # 5. Clone CoreDNS source with backup rotation
+    # 5. Clone or update CoreDNS source
     # ----------------------------------------------------------------
-    - name: Check if coredns source directory exists
-      ansible.builtin.stat:
-        path: "{{ coredns_src }}"
-      register: coredns_dir
-
-    - name: Rotate old backups (keep max 5)
-      ansible.builtin.shell: |
-        for i in 4 3 2 1; do
-          src="{{ coredns_src }}.bak.${i}"
-          dst="{{ coredns_src }}.bak.$((i+1))"
-          [ -d "$src" ] && mv "$src" "$dst"
-        done
-        rm -rf "{{ coredns_src }}.bak.6"
-      when: coredns_dir.stat.exists
-
-    - name: Backup current coredns directory
-      ansible.builtin.command:
-        cmd: "mv {{ coredns_src }} {{ coredns_src }}.bak.1"
-      when: coredns_dir.stat.exists
-
     - name: Clone CoreDNS {{ coredns_version }}
       ansible.builtin.git:
         repo: "https://github.com/coredns/coredns.git"
         dest: "{{ coredns_src }}"
         version: "{{ coredns_version }}"
-        depth: 1
         accept_hostkey: yes
       become_user: "{{ deploy_user }}"
 
