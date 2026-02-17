@@ -1,0 +1,259 @@
+---
+- name: Provision and deploy CoreDNS UI
+  hosts: all
+  become: yes
+  vars:
+    app_name: "coredns_ui"
+    # deploy_user, deploy_password, puma_port are passed via --extra-vars
+    home_path: "/home/{{ deploy_user }}"
+    app_path: "{{ home_path }}/{{ app_name }}"
+    ruby_version: "4.0.1"
+    ruby_major_minor: "4.0"
+    node_version: "24.13.1"
+    nvm_version: "0.40.4"
+    gem_home: "{{ home_path }}/.ruby"
+
+  tasks:
+    # ----------------------------------------------------------------
+    # 1. Create deploy user
+    # ----------------------------------------------------------------
+    - name: Create deploy user
+      ansible.builtin.user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        create_home: yes
+        password: "{{ deploy_password | password_hash('sha512') }}"
+        groups: sudo
+        append: yes
+
+    - name: Grant passwordless sudo to deploy user
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ deploy_user }}"
+        content: "{{ deploy_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    # ----------------------------------------------------------------
+    # 2. Install system packages
+    # ----------------------------------------------------------------
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install system dependencies
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - wget
+          - rsync
+          - git
+          - build-essential
+          - pkg-config
+          - libssl-dev
+          - libreadline-dev
+          - zlib1g-dev
+          - libffi-dev
+          - libffi8
+          - libyaml-dev
+          - libpq-dev
+          - libvips
+          - openssh-server
+          - net-tools
+          - redis-server
+          - redis-tools
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    # ----------------------------------------------------------------
+    # 3. Install Rust (needed for Ruby YJIT)
+    # ----------------------------------------------------------------
+    - name: Check if Rust is installed
+      ansible.builtin.command: "{{ home_path }}/.cargo/bin/rustc --version"
+      become_user: "{{ deploy_user }}"
+      register: rust_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Rust via rustup
+      ansible.builtin.shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      become_user: "{{ deploy_user }}"
+      when: rust_check.rc != 0
+
+    # ----------------------------------------------------------------
+    # 4. Install Ruby from source
+    # ----------------------------------------------------------------
+    - name: Check if Ruby {{ ruby_version }} is installed
+      ansible.builtin.command: /usr/local/bin/ruby -v
+      register: ruby_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Ruby {{ ruby_version }} from source
+      when: ruby_check.rc != 0 or ruby_version not in (ruby_check.stdout | default(''))
+      block:
+        - name: Download Ruby {{ ruby_version }}
+          ansible.builtin.get_url:
+            url: "https://cache.ruby-lang.org/pub/ruby/{{ ruby_major_minor }}/ruby-{{ ruby_version }}.tar.gz"
+            dest: "/tmp/ruby-{{ ruby_version }}.tar.gz"
+
+        - name: Extract Ruby source
+          ansible.builtin.unarchive:
+            src: "/tmp/ruby-{{ ruby_version }}.tar.gz"
+            dest: /tmp
+            remote_src: yes
+
+        - name: Configure Ruby
+          ansible.builtin.command:
+            cmd: ./configure --disable-install-rdoc --enable-yjit --with-libffi-dir=/usr/lib/x86_64-linux-gnu
+            chdir: "/tmp/ruby-{{ ruby_version }}"
+          environment:
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+        - name: Build Ruby
+          community.general.make:
+            chdir: "/tmp/ruby-{{ ruby_version }}"
+          environment:
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+        - name: Install Ruby
+          community.general.make:
+            chdir: "/tmp/ruby-{{ ruby_version }}"
+            target: install
+          environment:
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+
+        - name: Clean up Ruby source
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "/tmp/ruby-{{ ruby_version }}.tar.gz"
+            - "/tmp/ruby-{{ ruby_version }}"
+
+    # ----------------------------------------------------------------
+    # 5. Configure GEM_HOME for deploy user
+    # ----------------------------------------------------------------
+    - name: Set GEM_HOME and PATH in .bashrc
+      ansible.builtin.blockinfile:
+        path: "{{ home_path }}/.bashrc"
+        marker: "# {mark} RUBY GEM CONFIG"
+        block: |
+          export GEM_HOME=~/.ruby/
+          export PATH="$PATH:~/.ruby/bin"
+        owner: "{{ deploy_user }}"
+
+    # ----------------------------------------------------------------
+    # 6. Install NVM and Node.js
+    # ----------------------------------------------------------------
+    - name: Check if NVM is installed
+      ansible.builtin.stat:
+        path: "{{ home_path }}/.nvm/nvm.sh"
+      register: nvm_stat
+
+    - name: Install NVM
+      ansible.builtin.shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
+      become_user: "{{ deploy_user }}"
+      when: not nvm_stat.stat.exists
+
+    - name: Install Node.js {{ node_version }}
+      ansible.builtin.shell: |
+        export NVM_DIR="{{ home_path }}/.nvm"
+        . "$NVM_DIR/nvm.sh"
+        nvm install {{ node_version }}
+      become_user: "{{ deploy_user }}"
+      args:
+        executable: /bin/bash
+
+    - name: Install Yarn globally
+      ansible.builtin.shell: |
+        export NVM_DIR="{{ home_path }}/.nvm"
+        . "$NVM_DIR/nvm.sh"
+        npm install yarn -g
+      become_user: "{{ deploy_user }}"
+      args:
+        executable: /bin/bash
+
+    # ----------------------------------------------------------------
+    # 7. Install Bundler and app gems
+    # ----------------------------------------------------------------
+    - name: Install Bundler gem
+      community.general.gem:
+        name: bundler
+        state: present
+      environment:
+        GEM_HOME: "{{ gem_home }}"
+        PATH: "{{ gem_home }}/bin:{{ ansible_env.PATH }}"
+
+    - name: Run bundle install
+      ansible.builtin.command:
+        cmd: bundle install
+        chdir: "{{ app_path }}"
+      become_user: "{{ deploy_user }}"
+      environment:
+        GEM_HOME: "{{ gem_home }}"
+        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_env.PATH }}"
+
+    # ----------------------------------------------------------------
+    # 8. Configure Puma
+    # ----------------------------------------------------------------
+    - name: Create Puma configuration file
+      ansible.builtin.copy:
+        dest: "{{ app_path }}/config/puma.rb"
+        owner: "{{ deploy_user }}"
+        content: |
+          workers ENV.fetch("WEB_CONCURRENCY") { 2 }
+          threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
+          threads threads_count, threads_count
+          preload_app!
+          port ENV.fetch("PORT") { {{ puma_port }} }
+          environment ENV.fetch("RAILS_ENV") { "production" }
+          on_worker_boot do
+            ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
+          end
+
+    # ----------------------------------------------------------------
+    # 9. Create systemd service
+    # ----------------------------------------------------------------
+    - name: Create systemd service for Puma
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/coredns_ui.service
+        content: |
+          [Unit]
+          Description=Puma HTTP Server for CoreDNS UI
+          After=network.target redis-server.service
+
+          [Service]
+          Type=simple
+          User={{ deploy_user }}
+          WorkingDirectory={{ app_path }}
+          ExecStart=/usr/local/bin/bundle exec puma -C {{ app_path }}/config/puma.rb
+          Restart=always
+          Environment=RAILS_ENV=production
+          Environment=GEM_HOME={{ gem_home }}
+          Environment=PATH={{ gem_home }}/bin:/usr/local/bin:/usr/bin:/bin
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart Puma
+
+    - name: Enable and start Puma
+      ansible.builtin.systemd:
+        name: coredns_ui
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart Puma
+      ansible.builtin.systemd:
+        name: coredns_ui
+        state: restarted
+        daemon_reload: yes

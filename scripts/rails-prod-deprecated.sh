@@ -9,7 +9,17 @@ set -e
 # ----------------------------
 
 # List of required environment variables
-REQUIRED_VARS=("APP_PORT" "DEPLOY_USER")
+REQUIRED_VARS=("APP_PORT" "DEPLOY_USER" "DEPLOY_PASSWORD")
+
+export APP_PORT=8000
+export DEPLOY_USER="deploy"
+export DEPLOY_PASSWORD="deploy"
+
+# Create user with home directory and bash shell, set password, add to sudo group
+sudo useradd -m -s /bin/bash deploy && echo "deploy:$DEPLOY_PASSWORD" | sudo chpasswd && sudo usermod -aG sudo deploy
+
+#Replace yourpassword with the actual password. If you want passwordless sudo as well:
+echo 'deploy ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/deploy
 
 # Function to check environment variables
 check_env_vars() {
@@ -49,38 +59,22 @@ else
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
   . "$HOME/.cargo/env"
   sudo rm -rf ruby-3.3.4.tar ruby-3.3.4
-  wget "https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.4.tar.gz"
-  tar -xzvf ruby-3.3.4.tar.gz
-  cd ruby-3.3.4
+  wget "https://cache.ruby-lang.org/pub/ruby/4.0/ruby-4.0.1.tar.gz"
+  tar -xzvf ruby-4.0.1.tar.gz
+  cd ruby-4.0.1
   ./configure --disable-install-rdoc --enable-yjit --with-libffi-dir=/usr/lib/x86_64-linux-gnu
   make
   sudo make install
 fi
 
 
-
-
-
-# # No docker required yet
-# sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-# sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# # Add the repository to Apt sources:
-# echo \
-#   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-#   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-#   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-# sudo apt-get update
-# sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-
 export NVM_DIR="$HOME/.nvm"
 echo 'export GEM_HOME=~/.ruby/' >> ~/.bashrc
 echo 'export PATH="$PATH:~/.ruby/bin"' >> ~/.bashrc
 
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 . ~/.nvm/nvm.sh
-nvm install 20
+nvm install 24.13.1
 npm install yarn -g
 
 source ~/.bashrc
@@ -89,6 +83,5 @@ export GEM_HOME=~/.ruby/
 export PATH="$PATH:~/.ruby/bin"
 
 cd ~/coredns_ui
-
 
 GEM_HOME=~/.ruby/ PATH="$PATH:~/.ruby/bin" ansible-playbook scripts/rails-prod.yml
