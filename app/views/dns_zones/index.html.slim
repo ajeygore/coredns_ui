@@ -1,35 +1,21 @@
-p style="color: green" = notice
+div class="page-header"
+  h1 class="page-title" DNS Zones
+  - if current_user.admin?
+    = link_to "Add a DNS Zone", new_dns_zone_path, class: "btn btn-primary"
 
-h1 class="text-[#0099ff] text-4xl font-extrabold pb-2 border-b-2 border-black"  DNS Zones
-p
-
-#dns_zones
-  table class="w-full mt-4 mb-4 text-gray-900"
-    - @dns_zones.each do |dns_zone|
-      tr
-        td class="p-2 border-l-0 border-b-2 border-t-0 border-gray-300 text-[#007bff] "
-          div class="flex items-center justify-between flex-wrap"
-            - if dns_zone.name.split('.').length==2
-              span class="text-left text-gray-800 font-bold"
-                = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone), class: "text-left font-bold text-gray-700"
-            - else
-              span class="ml-4 text-left text-gray-600"
-                = link_to "#{dns_zone.name}", dns_zone_dns_records_path(dns_zone), class: "text-left text-[#0099ff]"
-            span
-              span class="text-green-700 p-2"
-                = "Redis Host: #{dns_zone.redis_host}"
-              span class="text-green-700 p-2"
-                = "Records: #{dns_zone.dns_records.count}"
-              span
-                = link_to "Refresh Zone", refresh_path(dns_zone), class: "mr-2 inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-green-600"
-              span
-                - if dns_zone.dns_records.count > 0
-                  = link_to "Delete Zone", dns_zones_path, disabled: true,  class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-gray-400"
-                - if dns_zone.dns_records.count == 0
-                  = link_to "Delete Zone", dns_zone, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' },  class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
-
-
-
-
-
-= link_to "Add a DNS Zone", new_dns_zone_path, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
+div class="card" style="padding: 0"
+  - @dns_zones.each do |dns_zone|
+    div class="zone-item"
+      div class="flex items-center gap-3"
+        - if dns_zone.name.split('.').length == 2
+          = link_to dns_zone.name, dns_zone_dns_records_path(dns_zone), class: "font-semibold", style: "color: var(--color-text-primary); text-decoration: none"
+        - else
+          = link_to dns_zone.name, dns_zone_dns_records_path(dns_zone), class: "ml-4", style: "color: var(--color-accent-primary); text-decoration: none"
+      div class="flex items-center gap-2 flex-wrap"
+        span class="badge badge-info" = dns_zone.redis_host
+        span class="badge badge-success" = "#{dns_zone.dns_records.count} records"
+        = link_to "Refresh", refresh_path(dns_zone), class: "btn btn-success btn-sm"
+        - if dns_zone.dns_records.count > 0
+          span class="btn btn-disabled btn-sm" Delete
+        - else
+          = link_to "Delete", dns_zone, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"

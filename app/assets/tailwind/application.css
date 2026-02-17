@@ -2,20 +2,483 @@
 
 @config '../../../config/tailwind.config.js';
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+/* ============================================
+   Theme Variables
+   ============================================ */
 @layer base {
+  :root {
+    /* Backgrounds */
+    --color-bg-primary: #f8fafc;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f1f5f9;
+    --color-bg-input: #ffffff;
+
+    /* Text */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-tertiary: #64748b;
+    --color-text-muted: #94a3b8;
+    --color-text-inverse: #ffffff;
+
+    /* Accent */
+    --color-accent-primary: #3b82f6;
+    --color-accent-primary-hover: #2563eb;
+    --color-accent-light: #dbeafe;
+    --color-accent-bg: #eff6ff;
+
+    /* Status */
+    --color-success: #16a34a;
+    --color-success-hover: #15803d;
+    --color-success-light: #dcfce7;
+    --color-danger: #dc2626;
+    --color-danger-hover: #b91c1c;
+    --color-danger-light: #fee2e2;
+    --color-warning: #d97706;
+    --color-warning-light: #fef3c7;
+
+    /* Borders */
+    --color-border-primary: #e2e8f0;
+    --color-border-secondary: #cbd5e1;
+    --color-border-input: #cbd5e1;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+    /* Tables */
+    --color-table-header-bg: #f1f5f9;
+    --color-table-header-text: #334155;
+    --color-table-row-hover: #f8fafc;
+    --color-table-border: #e2e8f0;
+
+    /* Nav */
+    --color-nav-bg: #ffffff;
+    --color-nav-border: #e2e8f0;
+
+    /* Login gradient */
+    --color-login-from: #eff6ff;
+    --color-login-via: #eef2ff;
+    --color-login-to: #faf5ff;
+  }
+
+  .dark {
+    /* Backgrounds */
+    --color-bg-primary: #0f172a;
+    --color-bg-secondary: #1e293b;
+    --color-bg-tertiary: #334155;
+    --color-bg-input: #1e293b;
+
+    /* Text */
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #cbd5e1;
+    --color-text-tertiary: #94a3b8;
+    --color-text-muted: #64748b;
+    --color-text-inverse: #0f172a;
+
+    /* Accent */
+    --color-accent-primary: #60a5fa;
+    --color-accent-primary-hover: #93bbfd;
+    --color-accent-light: #1e3a5f;
+    --color-accent-bg: #172554;
+
+    /* Status */
+    --color-success: #4ade80;
+    --color-success-hover: #86efac;
+    --color-success-light: #14532d;
+    --color-danger: #f87171;
+    --color-danger-hover: #fca5a5;
+    --color-danger-light: #450a0a;
+    --color-warning: #fbbf24;
+    --color-warning-light: #451a03;
+
+    /* Borders */
+    --color-border-primary: #334155;
+    --color-border-secondary: #475569;
+    --color-border-input: #475569;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+
+    /* Tables */
+    --color-table-header-bg: #1e293b;
+    --color-table-header-text: #e2e8f0;
+    --color-table-row-hover: #253349;
+    --color-table-border: #334155;
+
+    /* Nav */
+    --color-nav-bg: #1e293b;
+    --color-nav-border: #334155;
+
+    /* Login gradient */
+    --color-login-from: #0f172a;
+    --color-login-via: #1e1b4b;
+    --color-login-to: #1e1338;
+  }
+
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-border-primary);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* ============================================
+   Component Classes
+   ============================================ */
+@layer components {
+
+  /* --- Buttons --- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary {
+    background-color: var(--color-accent-primary);
+    color: var(--color-text-inverse);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-accent-primary-hover);
+  }
+
+  .btn-danger {
+    background-color: var(--color-danger);
+    color: #ffffff;
+  }
+  .btn-danger:hover {
+    background-color: var(--color-danger-hover);
+  }
+
+  .btn-success {
+    background-color: var(--color-success);
+    color: #ffffff;
+  }
+  .btn-success:hover {
+    background-color: var(--color-success-hover);
+  }
+
+  .btn-disabled {
+    background-color: var(--color-text-muted);
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  /* --- Cards --- */
+  .card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+  }
+
+  .card-header {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+
+  /* --- Tables --- */
+  .table-container {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  .table-container table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table-container thead th {
+    background-color: var(--color-table-header-bg);
+    color: var(--color-table-header-text);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-table-border);
+  }
+
+  .table-container tbody td {
+    padding: 0.75rem 1rem;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-table-border);
+    font-size: 0.875rem;
+  }
+
+  .table-container tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .table-container tbody tr:hover {
+    background-color: var(--color-table-row-hover);
+  }
+
+  /* --- Form Inputs --- */
+  .input-field {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-input);
+    border: 1px solid var(--color-border-input);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  .select-field {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-input);
+    border: 1px solid var(--color-border-input);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease;
+  }
+
+  .select-field:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  .input-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.25rem;
+  }
+
+  .input-help {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+  }
+
+  /* --- Page Headers --- */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .page-subtitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* --- Flash Messages --- */
+  .flash-notice {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .flash-success {
+    background-color: var(--color-success-light);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+  }
+
+  .flash-error {
+    background-color: var(--color-danger-light);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+  }
+
+  .flash-alert {
+    background-color: var(--color-warning-light);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+  }
+
+  /* --- Navigation --- */
+  .nav-bar {
+    background-color: var(--color-nav-bg);
+    border-bottom: 1px solid var(--color-nav-border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-link {
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    transition: color 0.15s ease;
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-link:hover {
+    color: var(--color-accent-primary);
+    border-bottom-color: var(--color-accent-primary);
+  }
+
+  /* --- Badges --- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+
+  .badge-success {
+    background-color: var(--color-success-light);
+    color: var(--color-success);
+  }
+
+  .badge-warning {
+    background-color: var(--color-warning-light);
+    color: var(--color-warning);
+  }
+
+  .badge-info {
+    background-color: var(--color-accent-light);
+    color: var(--color-accent-primary);
+  }
+
+  /* --- Zone Item --- */
+  .zone-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-border-primary);
+    transition: background-color 0.15s ease;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .zone-item:last-child {
+    border-bottom: none;
+  }
+
+  .zone-item:hover {
+    background-color: var(--color-table-row-hover);
+  }
+
+  /* --- Theme Toggle --- */
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .theme-toggle:hover {
+    background-color: var(--color-border-primary);
+    color: var(--color-text-primary);
+  }
+
+  /* --- Empty State --- */
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* --- Login Page --- */
+  .login-gradient {
+    background: linear-gradient(135deg, var(--color-login-from), var(--color-login-via), var(--color-login-to));
+  }
+
+  /* --- Back Links --- */
+  .back-link {
+    color: var(--color-accent-primary);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-accent-primary-hover);
+  }
+
+  /* --- Inline form record row --- */
+  .record-form-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .record-form-row .select-field,
+  .record-form-row .input-field {
+    width: auto;
   }
 }

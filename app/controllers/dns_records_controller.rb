@@ -1,5 +1,8 @@
 class DnsRecordsController < ApplicationController
+  include ZoneAuthorizable
+
   before_action :set_dns_zone
+  before_action :authorize_zone_access!
 
   def create # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     @dns_record = @dns_zone.dns_records.new(dns_record_params)

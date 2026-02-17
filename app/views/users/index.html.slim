@@ -1,0 +1,50 @@
+div class="page-header"
+  h1 class="page-title" User Management
+
+/ Invite form
+div class="card mb-6"
+  h2 class="card-header" Invite a New User
+  = form_with model: @user, url: users_path, method: :post, class: "flex items-end gap-4 flex-wrap" do |f|
+    div
+      = f.label :email, "Email", class: "input-label"
+      = f.email_field :email, required: true, class: "input-field", style: "width: 16rem", placeholder: "user@example.com"
+    div
+      = f.label :permitted_zones, "Permitted Zones", class: "input-label"
+      = f.text_field :permitted_zones, class: "input-field", style: "width: 16rem", placeholder: "* or zone1.com,zone2.com"
+    div class="flex items-center gap-2 pb-2"
+      = f.check_box :admin, class: "h-4 w-4"
+      = f.label :admin, "Admin", class: "input-label", style: "margin-bottom: 0"
+    div
+      = f.submit "Invite User", class: "btn btn-primary"
+
+/ Users table
+div class="table-container"
+  table
+    thead
+      tr
+        th Email
+        th Name
+        th class="w-20" Admin
+        th Permitted Zones
+        th class="w-24" Status
+        th class="w-32" Actions
+    tbody
+      - @users.each do |user|
+        tr
+          td = user.email
+          td = user.name || '-'
+          td
+            = form_with model: user, url: user_path(user), method: :patch, class: "inline" do |f|
+              = f.check_box :admin, onchange: "this.form.requestSubmit()", class: "h-4 w-4"
+          td
+            = form_with model: user, url: user_path(user), method: :patch, class: "flex items-center gap-2" do |f|
+              = f.text_field :permitted_zones, value: user.permitted_zones, class: "input-field flex-1", style: "font-size: 0.8125rem"
+              = f.submit "Save", class: "btn btn-success btn-sm"
+          td
+            - if user.auth_provider.present?
+              span class="badge badge-success" Active
+            - else
+              span class="badge badge-warning" Invited
+          td
+            - unless user.id == current_user.id
+              = link_to "Remove", user_path(user), data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to remove #{user.email}?" }, class: "btn btn-danger btn-sm"

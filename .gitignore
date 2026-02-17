@@ -32,6 +32,7 @@ config/master.key
 # TODO Comment out these rules if environment variables can be committed
 .env
 .env*.local
+.secret_key_base
 
 ## Environment normalization:
 /.bundle

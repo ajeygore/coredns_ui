@@ -17,42 +17,74 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
-    <style>
-      body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      }
-    </style>
+    <script>
+      (function() {
+        var t = localStorage.getItem('theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (t === 'dark') document.documentElement.classList.add('dark');
+      })();
+    </script>
   </head>
-  <body class="<%= yield(:body_class) || 'bg-gray-50 min-h-screen' %>">
+  <body class="min-h-screen">
     <main class="<%= current_user.present? ? 'container mx-auto' : '' %>">
       <% if current_user.present? %>
-        <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <nav class="nav-bar">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
               <div class="flex items-center">
                 <div class="flex-shrink-0 flex items-center">
-                  <svg class="h-8 w-8 text-blue-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2L3 7v11h4v-6h6v6h4V7l-7-5z"/>
+                  <svg class="h-8 w-8 mr-3" style="color: var(--color-accent-primary)" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9"/>
+                    <ellipse cx="12" cy="12" rx="3.5" ry="9"/>
+                    <line x1="3" y1="9.5" x2="21" y2="9.5"/>
+                    <line x1="3" y1="14.5" x2="21" y2="14.5"/>
                   </svg>
-                  <span class="font-bold text-xl text-gray-900">Domain Manager</span>
+                  <span class="font-bold text-xl" style="color: var(--color-text-primary)">Domain Manager</span>
                 </div>
               </div>
-              
-              <div class="flex items-center space-x-8">
-                <%= link_to "DNS Zones", dns_zones_path, class: "text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-blue-600" %>
-                <%= link_to "API Tokens", api_tokens_path, class: "text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200 border-b-2 border-transparent hover:border-blue-600" %>
-                
-                <div class="flex items-center space-x-4 ml-6 pl-6 border-l border-gray-200">
-                  <span class="text-sm text-gray-700">Welcome, <%= current_user.name %></span>
-                  <%= link_to "Sign Out", logout_path, method: :delete, 
-                      class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200" %>
+
+              <div class="flex items-center space-x-6">
+                <%= link_to "DNS Zones", dns_zones_path, class: "nav-link" %>
+                <%= link_to "API Tokens", api_tokens_path, class: "nav-link" %>
+                <% if current_user.admin? %>
+                  <%= link_to "Users", users_path, class: "nav-link" %>
+                <% end %>
+
+                <div class="flex items-center space-x-3 ml-4 pl-4" style="border-left: 1px solid var(--color-border-primary)">
+                  <span class="text-sm" style="color: var(--color-text-tertiary)">
+                    <%= current_user.name %>
+                  </span>
+                  <div data-controller="theme">
+                    <button class="theme-toggle" data-action="click->theme#toggle" type="button" aria-label="Toggle theme">
+                      <svg data-theme-target="icon" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <%= link_to "Sign Out", logout_path, method: :delete, class: "btn btn-danger btn-sm" %>
                 </div>
               </div>
             </div>
           </div>
         </nav>
-        
+
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <% if notice.present? %>
+            <div class="flash-notice flash-success">
+              <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <%= notice %>
+            </div>
+          <% end %>
+          <% if alert.present? %>
+            <div class="flash-notice flash-alert">
+              <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+              </svg>
+              <%= alert %>
+            </div>
+          <% end %>
           <%= yield %>
         </div>
       <% else %>

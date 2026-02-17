@@ -1,3 +1,31 @@
-<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="red"/>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="globe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#E0E7FF" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <!-- Globe circle -->
+  <circle cx="256" cy="248" r="140" fill="none" stroke="url(#globe)" stroke-width="14"/>
+  <!-- Horizontal lines (latitude) -->
+  <line x1="116" y1="208" x2="396" y2="208" stroke="url(#globe)" stroke-width="8" stroke-linecap="round"/>
+  <line x1="116" y1="288" x2="396" y2="288" stroke="url(#globe)" stroke-width="8" stroke-linecap="round"/>
+  <!-- Vertical meridian -->
+  <ellipse cx="256" cy="248" rx="56" ry="140" fill="none" stroke="url(#globe)" stroke-width="10"/>
+  <!-- Vertical center line -->
+  <line x1="256" y1="108" x2="256" y2="388" stroke="url(#globe)" stroke-width="8" stroke-linecap="round"/>
+  <!-- DNS dot nodes -->
+  <circle cx="200" cy="208" r="10" fill="#ffffff"/>
+  <circle cx="312" cy="208" r="10" fill="#ffffff"/>
+  <circle cx="256" cy="288" r="10" fill="#ffffff"/>
+  <circle cx="176" cy="288" r="10" fill="#ffffff"/>
+  <circle cx="336" cy="288" r="10" fill="#ffffff"/>
+  <!-- "DNS" text -->
+  <text x="256" y="438" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="56" fill="#ffffff" letter-spacing="8">DNS</text>
 </svg>

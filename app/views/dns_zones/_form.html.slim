@@ -1,10 +1,18 @@
 = form_with(model: dns_zone) do |form|
   - if dns_zone.errors.any?
-      h2 class="text-red-500"= "#{pluralize(dns_zone.errors.count, "error")} prohibited this dns_zone from being saved:"
-      ul
-        - dns_zone.errors.each do |error|
-          li = error.full_message
+    div class="flash-notice flash-error mb-4"
+      = "#{pluralize(dns_zone.errors.count, "error")} prohibited this zone from being saved:"
+    ul class="list-disc ml-6 mb-4" style="color: var(--color-danger)"
+      - dns_zone.errors.each do |error|
+        li = error.full_message
 
-  = form.text_field :name, class: "mt-2 block w-full py-2 px-3 text-base font-normal leading-normal text-gray-700 bg-white border border-gray-400 rounded", placeholder: "Zone Name - example.com"
-  = form.text_field :redis_host, class: "mt-2 block w-full py-2 px-3 text-base font-normal leading-normal text-gray-700 bg-white border border-gray-400 rounded", value: "127.0.0.1"
-  = form.submit "Add Zone", class: "mt-2 block py-2 px-3 text-base font-normal leading-normal text-white bg-blue-600 border border-blue-600 rounded cursor-pointer"
+  div class="mb-4"
+    = form.label :name, "Zone Name", class: "input-label"
+    = form.text_field :name, class: "input-field", placeholder: "example.com"
+
+  div class="mb-4"
+    = form.label :redis_host, "Redis Host", class: "input-label"
+    = form.text_field :redis_host, class: "input-field", value: "127.0.0.1"
+
+  div
+    = form.submit "Save Zone", class: "btn btn-primary"

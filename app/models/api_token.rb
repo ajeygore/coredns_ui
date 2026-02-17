@@ -1,4 +1,6 @@
 class ApiToken < ApplicationRecord
+  include ZoneAccessible
+
   belongs_to :user, optional: true
 
   before_create :generate_token

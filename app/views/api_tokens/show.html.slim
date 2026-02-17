@@ -1,10 +1,6 @@
-p style="color: green" = notice
-
 == render @api_token
 
-div
-  => link_to "Edit this api token", edit_api_token_path(@api_token)
-  '|
-  =< link_to "Back to api tokens", api_tokens_path
-
-  = button_to "Destroy this api token", @api_token, method: :delete
+div class="mt-4 flex items-center gap-4"
+  = link_to "Edit this token", edit_api_token_path(@api_token), class: "back-link"
+  = link_to "Back to API Tokens", api_tokens_path, class: "back-link"
+  = button_to "Destroy this token", @api_token, method: :delete, class: "btn btn-danger btn-sm"

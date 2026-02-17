@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
-  resources :api_tokens, only: %i[index new destroy]
+  resources :users, only: %i[index create update destroy]
+  resources :api_tokens, only: %i[index new create destroy]
   resources :dns_zones do
     resources :dns_records
   end

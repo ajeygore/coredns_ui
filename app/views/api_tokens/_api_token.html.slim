@@ -1,10 +1,11 @@
-div id="#{dom_id api_token}"
-  p
-    strong Token:
-    =< api_token.token
-  p
-    strong User:
-    =< api_token.user_id
-  p
-    strong Expires at:
-    =< api_token.expires_at
+div id="#{dom_id api_token}" class="card mb-4"
+  div class="grid grid-cols-1 gap-3"
+    div
+      span class="input-label" Token
+      p style="font-family: monospace; color: var(--color-text-primary)" = api_token.token
+    div
+      span class="input-label" User
+      p style="color: var(--color-text-primary)" = api_token.user_id
+    div
+      span class="input-label" Expires at
+      p style="color: var(--color-text-primary)" = api_token.expires_at

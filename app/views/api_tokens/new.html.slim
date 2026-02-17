@@ -1,8 +1,19 @@
-h1 New api token
+div class="page-header"
+  h1 class="page-title" New API Token
 
-== render "form", api_token: @api_token
+div class="card max-w-lg"
+  = form_with model: @api_token, url: api_tokens_path, method: :post do |f|
+    div class="mb-4"
+      = f.label :permitted_zones, "Permitted Zones", class: "input-label"
+      = f.text_field :permitted_zones, class: "input-field", placeholder: "* or zone1.com,zone2.com"
+      p class="input-help" Use * for all zones, or comma-separated zone names.
 
-br
+    div class="mb-4"
+      = f.label :expires_at, "Expires At (optional)", class: "input-label"
+      = f.datetime_local_field :expires_at, class: "input-field"
 
-div
-  = link_to "Back to api tokens", api_tokens_path
+    div
+      = f.submit "Create Token", class: "btn btn-primary"
+
+div class="mt-4"
+  = link_to "Back to API Tokens", api_tokens_path, class: "back-link"

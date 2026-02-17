@@ -252,17 +252,26 @@
         group: "{{ deploy_user }}"
         mode: "0600"
 
-    - name: Check if SECRET_KEY_BASE is already in .env
-      ansible.builtin.shell: grep -q '^SECRET_KEY_BASE=' {{ app_path }}/.env
-      register: secret_key_check
-      changed_when: false
-      failed_when: false
+    - name: Check if persistent SECRET_KEY_BASE file exists
+      ansible.builtin.stat:
+        path: "{{ home_path }}/.secret_key_base"
+      register: secret_key_file
 
-    - name: Generate and append SECRET_KEY_BASE to .env
+    - name: Generate persistent SECRET_KEY_BASE file
       ansible.builtin.shell: |
-        echo "SECRET_KEY_BASE=$(openssl rand -hex 64)" >> {{ app_path }}/.env
-      become_user: "{{ deploy_user }}"
-      when: secret_key_check.rc != 0
+        openssl rand -hex 64 > {{ home_path }}/.secret_key_base
+        chmod 0600 {{ home_path }}/.secret_key_base
+        chown {{ deploy_user }}:{{ deploy_user }} {{ home_path }}/.secret_key_base
+      when: not secret_key_file.stat.exists
+
+    - name: Read SECRET_KEY_BASE from persistent file
+      ansible.builtin.command: cat {{ home_path }}/.secret_key_base
+      register: secret_key_base_raw
+      changed_when: false
+
+    - name: Set SECRET_KEY_BASE fact
+      ansible.builtin.set_fact:
+        secret_key_base: "{{ secret_key_base_raw.stdout | trim }}"
 
     # ----------------------------------------------------------------
     # 10. Database setup
@@ -282,6 +291,7 @@
       become_user: "{{ deploy_user }}"
       environment:
         RAILS_ENV: production
+        SECRET_KEY_BASE: "{{ secret_key_base }}"
         GEM_HOME: "{{ gem_home }}"
         PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
 
@@ -295,6 +305,7 @@
       become_user: "{{ deploy_user }}"
       environment:
         RAILS_ENV: production
+        SECRET_KEY_BASE: "{{ secret_key_base }}"
         GEM_HOME: "{{ gem_home }}"
         PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
 
@@ -334,6 +345,7 @@
           ExecStart=/usr/local/bin/bundle exec puma -C {{ app_path }}/config/puma.rb
           Restart=always
           EnvironmentFile={{ app_path }}/.env
+          Environment=SECRET_KEY_BASE={{ secret_key_base }}
           Environment=RAILS_ENV=production
           Environment=GEM_HOME={{ gem_home }}
           Environment=PATH={{ gem_home }}/bin:/usr/local/bin:/usr/bin:/bin

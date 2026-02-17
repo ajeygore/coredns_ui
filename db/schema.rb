@@ -10,13 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_08_17_171455) do
+ActiveRecord::Schema[8.0].define(version: 2026_02_17_165551) do
   create_table "api_tokens", force: :cascade do |t|
     t.string "token"
     t.integer "user_id", null: false
     t.datetime "expires_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "permitted_zones", default: "*"
     t.index ["token"], name: "index_api_tokens_on_token"
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
@@ -51,6 +52,9 @@ ActiveRecord::Schema[8.0].define(version: 2024_08_17_171455) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "uid"
+    t.string "permitted_zones", default: "*"
+    t.boolean "permitted", default: false
+    t.index ["email"], name: "index_users_on_email", unique: true
   end
 
   add_foreign_key "api_tokens", "users"

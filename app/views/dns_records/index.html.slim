@@ -1,79 +1,68 @@
-p style="color: green" = notice
 - if @dns_record.errors.any?
-    p style="color: red" = @dns_record.errors.full_messages.join(", ")
+  div class="flash-notice flash-error"
+    = @dns_record.errors.full_messages.join(", ")
 
-h1 class="text-[#0099ff] text-3xl font-extrabold pb-2 border-b-2 border-black ml-2 mb-2" = @dns_zone.name
+div class="page-header"
+  h1 class="page-title" = @dns_zone.name
 
-= form_with(model: [@dns_zone, @dns_record], local: true, data: { controller: "record-type", action: "submit->record-type#handleFormSubmit" }) do |form|
-  div class="flex ml-2 items-center justify-between gap-4"
-    <div class="flex flex-wrap wrap flex-1 max-w-full gap-2 items-center justify-between">
-      /= form.select :record_type, %w(A AAAA CNAME MX NS PTR SOA SRV TXT), class: "rounded ml-2", prompt: "Select Record Type"
-
-      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX], DnsRecord::A), class: "rounded ml-2", prompt: "Select Record Type", data: { action: "change->record-type#toggleFields" }
-
-      = form.text_field :name, class: "rounded flex-none", placeholder: "Record Name", style: "width: 150px;"
-
-      <div class="flex-1 flex gap-2" data-record-type-target="standardField">
-        = form.text_field :data, class: "rounded flex-1", placeholder: "Record Value"
-      </div>
-
-      <div class="flex-1 flex gap-2 hidden" data-record-type-target="mxFields">
-        = form.text_field :priority, class: "rounded flex-none w-20", placeholder: "Priority", data: { "record-type-target": "priority" }
-        = form.text_field :host, class: "rounded flex-1", placeholder: "Host", data: { "record-type-target": "host" }
+div class="card mb-6"
+  = form_with(model: [@dns_zone, @dns_record], local: true, data: { controller: "record-type", action: "submit->record-type#handleFormSubmit" }) do |form|
+    div class="record-form-row"
+      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX], DnsRecord::A), { prompt: "Select Record Type" }, class: "select-field", data: { action: "change->record-type#toggleFields" }
+      = form.text_field :name, class: "input-field", placeholder: "Record Name", style: "width: 150px; flex: none"
+      div class="flex-1 flex gap-2" data-record-type-target="standardField"
+        = form.text_field :data, class: "input-field flex-1", placeholder: "Record Value"
+      div class="flex-1 flex gap-2 hidden" data-record-type-target="mxFields"
+        = form.text_field :priority, class: "input-field w-20", style: "flex: none", placeholder: "Priority", data: { "record-type-target": "priority" }
+        = form.text_field :host, class: "input-field flex-1", placeholder: "Host", data: { "record-type-target": "host" }
         = form.hidden_field :data, data: { "record-type-target": "data" }
-      </div>
+      = form.text_field :ttl, class: "input-field", value: "300", style: "width: 4rem; flex: none"
+      = form.submit "Add Record", class: "btn btn-primary"
 
-      <div class="flex">
-        = form.text_field :ttl, class: "rounded flex-none w-16", value: "300"
-        <div class="flex-1 grow">
-        </div>
-      </div>
-      <div class="flex">
-        = form.submit "Add a record", class: "grow flex-1 font-normal text-center px-2 py-2 leading-normal text-base rounded cursor-pointer text-white bg-blue-600"
-      </div>
-    </div>
-h2 class="text-[#0099ff] text-xl pb-2 ml-2 mt-6 mb-2" DNS Records for this zone
+h2 class="page-subtitle" DNS Records
 
 - non_mx_records = @dns_zone.dns_records.where.not(record_type: DnsRecord::MX)
 - if non_mx_records.any?
-  table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
-    thead
-      tr class="text-blue-700 bg-blue-50"
-        th class="bg-blue-100 border text-left px-4 py-2" Type
-        th class="bg-blue-100 border text-left px-4 py-2" Name
-        th class="bg-blue-100 border text-left px-4 py-2" Data
-        th class="bg-blue-100 border text-left px-4 py-2" TTL
-        th class="bg-blue-100  border text-left px-4 py-2" Actions
+  div class="table-container mb-6"
+    table
+      thead
+        tr
+          th Type
+          th Name
+          th Data
+          th TTL
+          th Actions
+      tbody
+        - non_mx_records.order("LOWER(name)").each do |record|
+          tr
+            td = record.record_type
+            td = record.name
+            td = record.data
+            td = record.ttl
+            td
+              = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
 
-    tbody
-      - non_mx_records.order("LOWER(name)").each do |record|
-        tr class="text-gray-500"
-          td class="border px-4 py-2" = record.record_type
-          td class="border px-4 py-2" = record.name
-          td class="border px-4 py-2" = record.data
-          td class="border px-4 py-2" = record.ttl
-          td class="border px-4 py-2" = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
-
-h2 class="text-[#0099ff] text-xl pb-2 ml-2 mt-6 mb-2" MX Records for this zone
+h2 class="page-subtitle" MX Records
 
 - mx_records = @dns_zone.dns_records.where(record_type: DnsRecord::MX)
 - if mx_records.any?
-  table class="table-fixed w-full shadow-lg bg-white ml-2 mr-2"
-    thead
-      tr class="text-blue-700 bg-blue-50"
-        th class="bg-blue-100 border text-left px-4 py-2" Name
-        th class="bg-blue-100 border text-left px-4 py-2" Priority
-        th class="bg-blue-100 border text-left px-4 py-2" Host
-        th class="bg-blue-100 border text-left px-4 py-2" TTL
-        th class="bg-blue-100  border text-left px-4 py-2" Actions
-
-    tbody
-      - mx_records.order("LOWER(name)").each do |record|
-        tr class="text-gray-500"
-          td class="border px-4 py-2" = record.name
-          td class="border px-4 py-2" = record.mx_priority
-          td class="border px-4 py-2" = record.mx_host
-          td class="border px-4 py-2" = record.ttl
-          td class="border px-4 py-2" = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "inline-block font-normal text-center px-3 py-2 leading-normal text-base rounded cursor-pointer text-white bg-red-500"
+  div class="table-container"
+    table
+      thead
+        tr
+          th Name
+          th Priority
+          th Host
+          th TTL
+          th Actions
+      tbody
+        - mx_records.order("LOWER(name)").each do |record|
+          tr
+            td = record.name
+            td = record.mx_priority
+            td = record.mx_host
+            td = record.ttl
+            td
+              = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
 - else
-  p class="text-gray-500 ml-2" No MX records found for this zone.
+  p class="empty-state" No MX records found for this zone.

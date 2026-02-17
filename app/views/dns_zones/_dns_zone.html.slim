@@ -1,4 +1,4 @@
-div id="#{dom_id dns_zone}"
+div id="#{dom_id dns_zone}" class="card mb-2"
   p
-    strong Name:
-    =< dns_zone.name
+    strong style="color: var(--color-text-secondary)" Name:
+    span.ml-2 style="color: var(--color-text-primary)" =< dns_zone.name

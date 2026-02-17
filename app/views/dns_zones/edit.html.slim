@@ -1,10 +1,9 @@
-h1 Editing dns zone
+div class="page-header"
+  h1 class="page-title" Edit DNS Zone
 
-== render "form", dns_zone: @dns_zone
+div class="card max-w-lg"
+  == render "form", dns_zone: @dns_zone
 
-br
-
-div
-  => link_to "Show this dns zone", @dns_zone
-  '|
-  =< link_to "Back to dns zones", dns_zones_path
+div class="mt-4 flex items-center gap-4"
+  = link_to "Show this zone", @dns_zone, class: "back-link"
+  = link_to "Back to DNS Zones", dns_zones_path, class: "back-link"

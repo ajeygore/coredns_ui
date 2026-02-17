@@ -1,10 +1,8 @@
-h1 class="text-[#007bff] text-2xl font-extrabold" Add a DNS Zone
-p
+div class="page-header"
+  h1 class="page-title" Add a DNS Zone
 
+div class="card max-w-lg"
+  == render "form", dns_zone: @dns_zone
 
-== render "form", dns_zone: @dns_zone
-
-br
-
-div
-  = link_to "Back to dns zones", dns_zones_path
+div class="mt-4"
+  = link_to "Back to DNS Zones", dns_zones_path, class: "back-link"

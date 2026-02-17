@@ -1,22 +1,22 @@
 = form_with(model: api_token) do |form|
   - if api_token.errors.any?
-    div style="color: red"
-      h2 = "#{pluralize(api_token.errors.count, "error")} prohibited this api_token from being saved:"
-      ul
-        - api_token.errors.each do |error|
-          li = error.full_message
+    div class="flash-notice flash-error mb-4"
+      = "#{pluralize(api_token.errors.count, "error")} prohibited this token from being saved:"
+    ul class="list-disc ml-6 mb-4" style="color: var(--color-danger)"
+      - api_token.errors.each do |error|
+        li = error.full_message
+
+  div class="mb-4"
+    = form.label :token, "Token", class: "input-label"
+    = form.text_field :token, class: "input-field"
+
+  div class="mb-4"
+    = form.label :user_id, "User ID", class: "input-label"
+    = form.text_field :user_id, class: "input-field"
+
+  div class="mb-4"
+    = form.label :expires_at, "Expires at", class: "input-label"
+    = form.datetime_field :expires_at, class: "input-field"
 
   div
-    = form.label :token, style: "display: block"
-    = form.text_field :token
-
-  div
-    = form.label :user_id, style: "display: block"
-    = form.text_field :user_id
-
-  div
-    = form.label :expires_at, style: "display: block"
-    = form.datetime_field :expires_at
-
-  div
-    = form.submit
+    = form.submit class: "btn btn-primary"

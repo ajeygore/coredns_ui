@@ -1,4 +1,6 @@
 class Api::V1::ZonesController < Api::ApiController
+  before_action :check_api_zone_permission
+
   def create_subdomain
     if DnsZone.create_subdomain(zone_params)
       zone = DnsZone.find_by(name: zone_params[:name])
@@ -118,5 +120,14 @@ class Api::V1::ZonesController < Api::ApiController
 
   def mx_params
     params.require(:mx).permit(:priority, :host, :record_name, :ttl)
+  end
+
+  def check_api_zone_permission # rubocop:disable Metrics/AbcSize
+    zone_name = zone_params[:name] if params[:zone].present?
+    zone_name ||= mx_params[:name] if params[:mx].present? && mx_params[:name].present?
+
+    return if zone_name.blank?
+
+    authorize_api_zone_access!(zone_name)
   end
 end

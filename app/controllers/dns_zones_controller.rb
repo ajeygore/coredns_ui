@@ -1,9 +1,13 @@
 class DnsZonesController < ApplicationController
+  include ZoneAuthorizable
+
   before_action :set_dns_zone, only: %i[show edit update destroy refresh]
+  before_action :authorize_zone_access!, only: %i[show edit update destroy refresh]
+  before_action :require_admin, only: %i[new create destroy]
 
   # GET /dns_zones or /dns_zones.json
   def index
-    all_dns_zones = DnsZone.all
+    all_dns_zones = current_user.accessible_zones
 
     @dns_zones = all_dns_zones.sort_by do |zone|
       parts = zone.name.split('.')

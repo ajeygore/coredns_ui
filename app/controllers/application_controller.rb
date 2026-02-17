@@ -28,4 +28,10 @@ class ApplicationController < ActionController::Base
 
     redirect_to login_path, alert: 'You must be logged in to access this page.'
   end
+
+  def require_admin
+    return if current_user&.admin?
+
+    redirect_to dns_zones_path, alert: 'You must be an admin to access this page.'
+  end
 end
