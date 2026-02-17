@@ -63,6 +63,7 @@
           - libffi8
           - libyaml-dev
           - libpq-dev
+          - libsqlite3-dev
           - libvips
           - openssh-server
           - net-tools
@@ -241,7 +242,64 @@
         PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
 
     # ----------------------------------------------------------------
-    # 9. Configure Puma
+    # 9. Deploy .env file and generate SECRET_KEY_BASE
+    # ----------------------------------------------------------------
+    - name: Copy .env file to app directory
+      ansible.builtin.copy:
+        src: "{{ env_file }}"
+        dest: "{{ app_path }}/.env"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"
+
+    - name: Check if SECRET_KEY_BASE is already in .env
+      ansible.builtin.shell: grep -q '^SECRET_KEY_BASE=' {{ app_path }}/.env
+      register: secret_key_check
+      changed_when: false
+      failed_when: false
+
+    - name: Generate and append SECRET_KEY_BASE to .env
+      ansible.builtin.shell: |
+        echo "SECRET_KEY_BASE=$(openssl rand -hex 64)" >> {{ app_path }}/.env
+      become_user: "{{ deploy_user }}"
+      when: secret_key_check.rc != 0
+
+    # ----------------------------------------------------------------
+    # 10. Database setup
+    # ----------------------------------------------------------------
+    - name: Create production database directory
+      ansible.builtin.file:
+        path: "{{ home_path }}/coredns-app-db"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0755"
+
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: bundle exec rails db:migrate
+        chdir: "{{ app_path }}"
+      become_user: "{{ deploy_user }}"
+      environment:
+        RAILS_ENV: production
+        GEM_HOME: "{{ gem_home }}"
+        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+
+    # ----------------------------------------------------------------
+    # 11. Precompile assets (Tailwind CSS + Sprockets)
+    # ----------------------------------------------------------------
+    - name: Precompile assets
+      ansible.builtin.command:
+        cmd: bundle exec rails assets:precompile
+        chdir: "{{ app_path }}"
+      become_user: "{{ deploy_user }}"
+      environment:
+        RAILS_ENV: production
+        GEM_HOME: "{{ gem_home }}"
+        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+
+    # ----------------------------------------------------------------
+    # 12. Configure Puma
     # ----------------------------------------------------------------
     - name: Create Puma configuration file
       ansible.builtin.copy:
@@ -259,7 +317,7 @@
           end
 
     # ----------------------------------------------------------------
-    # 10. Create systemd service
+    # 13. Create systemd service
     # ----------------------------------------------------------------
     - name: Create systemd service for Puma
       ansible.builtin.copy:
@@ -275,6 +333,7 @@
           WorkingDirectory={{ app_path }}
           ExecStart=/usr/local/bin/bundle exec puma -C {{ app_path }}/config/puma.rb
           Restart=always
+          EnvironmentFile={{ app_path }}/.env
           Environment=RAILS_ENV=production
           Environment=GEM_HOME={{ gem_home }}
           Environment=PATH={{ gem_home }}/bin:/usr/local/bin:/usr/bin:/bin
