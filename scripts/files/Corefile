@@ -1,0 +1,13 @@
+. {
+	log
+        health :8053
+        errors
+        reload
+	redis {
+		address {{ redis_host }}:6379
+		ttl 10
+		connect_timeout 200
+		read_timeout 200
+	}
+	cache 30
+}

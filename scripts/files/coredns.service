@@ -1,0 +1,36 @@
+# /etc/systemd/system/coredns.service
+
+[Unit]
+Description=CoreDNS DNS Server
+Documentation=https://coredns.io/manual/toc/
+After=network.target
+
+[Service]
+# Run CoreDNS as a specific user for security (create the user if it doesn't exist)
+User={{ deploy_user }}
+Group={{ deploy_user }}
+# Grant permission to bind to privileged ports
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+# Ensure the user exists
+# You can create a dedicated user and group for CoreDNS
+# Uncomment the following lines if you need to create the user
+# ExecStartPre=/usr/sbin/groupadd --system bind
+# ExecStartPre=/usr/sbin/useradd --system --gid bind --home /var/cache/coredns --shell /usr/sbin/nologin bind
+
+# Working directory
+WorkingDirectory=/etc/coredns
+
+# ExecStart defines how to start CoreDNS
+ExecStart={{ coredns_src }}/coredns -conf /etc/coredns/Corefile
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+
+# Limit resource usage (optional)
+# LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

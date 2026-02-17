@@ -1,0 +1,291 @@
+---
+- name: Provision and deploy CoreDNS with Redis plugin
+  hosts: all
+  become: yes
+  vars:
+    coredns_version: "v1.12.0"
+    go_version: "1.23.6"
+    # deploy_user, deploy_password, redis_host are passed via --extra-vars
+    home_path: "/home/{{ deploy_user }}"
+    coredns_src: "{{ home_path }}/coredns"
+
+  tasks:
+    # ----------------------------------------------------------------
+    # 1. Create deploy user
+    # ----------------------------------------------------------------
+    - name: Create deploy user
+      ansible.builtin.user:
+        name: "{{ deploy_user }}"
+        shell: /bin/bash
+        create_home: yes
+        password: "{{ deploy_password | password_hash('sha512') }}"
+        groups: sudo
+        append: yes
+
+    - name: Grant passwordless sudo to deploy user
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ deploy_user }}"
+        content: "{{ deploy_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    # ----------------------------------------------------------------
+    # 2. Install system packages
+    # ----------------------------------------------------------------
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Install system dependencies
+      ansible.builtin.apt:
+        name:
+          - git
+          - make
+          - build-essential
+          - ca-certificates
+          - wget
+          - curl
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    # ----------------------------------------------------------------
+    # 3. Install Go (conditional)
+    # ----------------------------------------------------------------
+    - name: Check if Go is installed
+      ansible.builtin.command: /usr/local/go/bin/go version
+      register: go_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Go {{ go_version }}
+      when: go_check.rc != 0 or go_version not in (go_check.stdout | default(''))
+      block:
+        - name: Download Go {{ go_version }}
+          ansible.builtin.get_url:
+            url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
+            dest: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+
+        - name: Remove existing Go installation
+          ansible.builtin.file:
+            path: /usr/local/go
+            state: absent
+
+        - name: Extract Go to /usr/local
+          ansible.builtin.unarchive:
+            src: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+            dest: /usr/local
+            remote_src: yes
+
+        - name: Clean up Go tarball
+          ansible.builtin.file:
+            path: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+            state: absent
+
+    - name: Add Go to deploy user's PATH in .bashrc
+      ansible.builtin.blockinfile:
+        path: "{{ home_path }}/.bashrc"
+        marker: "# {mark} GO CONFIG"
+        block: |
+          export PATH="$PATH:/usr/local/go/bin"
+        owner: "{{ deploy_user }}"
+
+    # ----------------------------------------------------------------
+    # 4. Disable systemd-resolved (frees port 53 on Ubuntu)
+    # ----------------------------------------------------------------
+    - name: Stop and disable systemd-resolved
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: stopped
+        enabled: false
+      ignore_errors: yes
+
+    - name: Remove 127.0.0.53 from /etc/resolv.conf
+      ansible.builtin.lineinfile:
+        path: /etc/resolv.conf
+        line: "nameserver 127.0.0.53"
+        state: absent
+
+    - name: Ensure 8.8.8.8 is in /etc/resolv.conf
+      ansible.builtin.lineinfile:
+        path: /etc/resolv.conf
+        line: "nameserver 8.8.8.8"
+        state: present
+
+    # ----------------------------------------------------------------
+    # 5. Clone CoreDNS source with backup rotation
+    # ----------------------------------------------------------------
+    - name: Check if coredns source directory exists
+      ansible.builtin.stat:
+        path: "{{ coredns_src }}"
+      register: coredns_dir
+
+    - name: Rotate old backups (keep max 5)
+      ansible.builtin.shell: |
+        for i in 4 3 2 1; do
+          src="{{ coredns_src }}.bak.${i}"
+          dst="{{ coredns_src }}.bak.$((i+1))"
+          [ -d "$src" ] && mv "$src" "$dst"
+        done
+        rm -rf "{{ coredns_src }}.bak.6"
+      when: coredns_dir.stat.exists
+
+    - name: Backup current coredns directory
+      ansible.builtin.command:
+        cmd: "mv {{ coredns_src }} {{ coredns_src }}.bak.1"
+      when: coredns_dir.stat.exists
+
+    - name: Clone CoreDNS {{ coredns_version }}
+      ansible.builtin.git:
+        repo: "https://github.com/coredns/coredns.git"
+        dest: "{{ coredns_src }}"
+        version: "{{ coredns_version }}"
+        depth: 1
+        accept_hostkey: yes
+      become_user: "{{ deploy_user }}"
+
+    # ----------------------------------------------------------------
+    # 6. Add Redis plugin to plugin.cfg
+    # ----------------------------------------------------------------
+    - name: Add Redis plugin to plugin.cfg
+      ansible.builtin.lineinfile:
+        path: "{{ coredns_src }}/plugin.cfg"
+        insertafter: "^cache:cache"
+        line: "redis:github.com/codysnider/coredns-redis"
+
+    # ----------------------------------------------------------------
+    # 7. Compile CoreDNS
+    # ----------------------------------------------------------------
+    - name: Compile CoreDNS with Redis plugin
+      community.general.make:
+        chdir: "{{ coredns_src }}"
+      become_user: "{{ deploy_user }}"
+      environment:
+        PATH: "/usr/local/go/bin:{{ ansible_facts['env']['PATH'] }}"
+        HOME: "{{ home_path }}"
+
+    # ----------------------------------------------------------------
+    # 8. Deploy Corefile
+    # ----------------------------------------------------------------
+    - name: Create /etc/coredns directory
+      ansible.builtin.file:
+        path: /etc/coredns
+        state: directory
+        mode: "0755"
+
+    - name: Deploy Corefile
+      ansible.builtin.copy:
+        dest: /etc/coredns/Corefile
+        content: |
+          . {
+          	log
+                  health :8053
+                  errors
+                  reload
+          	redis {
+          		address {{ redis_host }}:6379
+          		ttl 10
+          		connect_timeout 200
+          		read_timeout 200
+          	}
+          	cache 30
+          }
+        mode: "0644"
+      notify: Restart CoreDNS
+
+    # ----------------------------------------------------------------
+    # 9. Deploy systemd service
+    # ----------------------------------------------------------------
+    - name: Deploy CoreDNS systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/coredns.service
+        content: |
+          [Unit]
+          Description=CoreDNS DNS Server
+          Documentation=https://coredns.io/manual/toc/
+          After=network.target
+
+          [Service]
+          User={{ deploy_user }}
+          Group={{ deploy_user }}
+          CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+          AmbientCapabilities=CAP_NET_BIND_SERVICE
+          NoNewPrivileges=true
+          WorkingDirectory=/etc/coredns
+          ExecStart={{ coredns_src }}/coredns -conf /etc/coredns/Corefile
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      notify: Restart CoreDNS
+
+    # ----------------------------------------------------------------
+    # 10. Configure UFW firewall
+    # ----------------------------------------------------------------
+    - name: Install UFW
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH (port 22)
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Allow HTTPS (port 443)
+      community.general.ufw:
+        rule: allow
+        port: "443"
+        proto: tcp
+
+    - name: Allow DNS over TCP (port 53)
+      community.general.ufw:
+        rule: allow
+        port: "53"
+        proto: tcp
+
+    - name: Allow DNS over UDP (port 53)
+      community.general.ufw:
+        rule: allow
+        port: "53"
+        proto: udp
+
+    - name: Set UFW default deny incoming
+      community.general.ufw:
+        default: deny
+        direction: incoming
+
+    - name: Set UFW default allow outgoing
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+
+    # ----------------------------------------------------------------
+    # 11. Enable and start services
+    # ----------------------------------------------------------------
+    - name: Enable and start CoreDNS
+      ansible.builtin.systemd:
+        name: coredns
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart CoreDNS
+      ansible.builtin.systemd:
+        name: coredns
+        state: restarted
+        daemon_reload: yes

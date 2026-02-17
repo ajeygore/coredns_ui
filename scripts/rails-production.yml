@@ -115,20 +115,20 @@
             cmd: ./configure --disable-install-rdoc --enable-yjit --with-libffi-dir=/usr/lib/x86_64-linux-gnu
             chdir: "/tmp/ruby-{{ ruby_version }}"
           environment:
-            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_facts['env']['PATH'] }}"
 
         - name: Build Ruby
           community.general.make:
             chdir: "/tmp/ruby-{{ ruby_version }}"
           environment:
-            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_facts['env']['PATH'] }}"
 
         - name: Install Ruby
           community.general.make:
             chdir: "/tmp/ruby-{{ ruby_version }}"
             target: install
           environment:
-            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_env.PATH }}"
+            PATH: "{{ home_path }}/.cargo/bin:{{ ansible_facts['env']['PATH'] }}"
 
         - name: Clean up Ruby source
           ansible.builtin.file:
@@ -182,7 +182,46 @@
         executable: /bin/bash
 
     # ----------------------------------------------------------------
-    # 7. Install Bundler and app gems
+    # 7. Clone / update application repository
+    # ----------------------------------------------------------------
+    - name: Check if app directory exists
+      ansible.builtin.stat:
+        path: "{{ app_path }}"
+      register: app_dir
+
+    - name: Rotate old backups (keep max 5)
+      ansible.builtin.shell: |
+        for i in 4 3 2 1; do
+          src="{{ app_path }}.bak.${i}"
+          dst="{{ app_path }}.bak.$((i+1))"
+          [ -d "$src" ] && mv "$src" "$dst"
+        done
+        # Remove the 6th (oldest) if it was pushed out
+        rm -rf "{{ app_path }}.bak.6"
+      when: app_dir.stat.exists
+
+    - name: Backup current app directory
+      ansible.builtin.command:
+        cmd: "mv {{ app_path }} {{ app_path }}.bak.1"
+      when: app_dir.stat.exists
+
+    - name: Clone coredns_ui repository
+      ansible.builtin.git:
+        repo: "https://github.com/ajeygore/coredns_ui.git"
+        dest: "{{ app_path }}"
+        version: main
+        accept_hostkey: yes
+      become_user: "{{ deploy_user }}"
+
+    - name: Ensure deploy user owns application directory
+      ansible.builtin.file:
+        path: "{{ app_path }}"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        recurse: yes
+
+    # ----------------------------------------------------------------
+    # 8. Install Bundler and app gems
     # ----------------------------------------------------------------
     - name: Install Bundler gem
       community.general.gem:
@@ -190,7 +229,7 @@
         state: present
       environment:
         GEM_HOME: "{{ gem_home }}"
-        PATH: "{{ gem_home }}/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ gem_home }}/bin:{{ ansible_facts['env']['PATH'] }}"
 
     - name: Run bundle install
       ansible.builtin.command:
@@ -199,10 +238,10 @@
       become_user: "{{ deploy_user }}"
       environment:
         GEM_HOME: "{{ gem_home }}"
-        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
 
     # ----------------------------------------------------------------
-    # 8. Configure Puma
+    # 9. Configure Puma
     # ----------------------------------------------------------------
     - name: Create Puma configuration file
       ansible.builtin.copy:
@@ -220,7 +259,7 @@
           end
 
     # ----------------------------------------------------------------
-    # 9. Create systemd service
+    # 10. Create systemd service
     # ----------------------------------------------------------------
     - name: Create systemd service for Puma
       ansible.builtin.copy:

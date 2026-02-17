@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "WebFetch(domain:coredns.io)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd CoreDNS production deployment scripts with UFW firewall\n\nAdds coredns-production.sh/.yml for deploying CoreDNS compiled from\nsource with the Redis plugin. Includes Go installation, systemd-resolved\ndisabling, backup rotation, UFW firewall \\(ports 22/443/53 only\\), and\nparameterized Corefile/service templates. Also updates CLAUDE.md and\nfixes ansible_env deprecation in rails-production.yml.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
