@@ -121,11 +121,12 @@
     # ----------------------------------------------------------------
     # 5. Clone or update CoreDNS source
     # ----------------------------------------------------------------
-    - name: Clone CoreDNS {{ coredns_version }}
+    - name: Clone or update CoreDNS {{ coredns_version }}
       ansible.builtin.git:
         repo: "https://github.com/coredns/coredns.git"
         dest: "{{ coredns_src }}"
         version: "{{ coredns_version }}"
+        force: yes
         accept_hostkey: yes
       become_user: "{{ deploy_user }}"
 
