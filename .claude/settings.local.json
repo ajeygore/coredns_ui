@@ -13,7 +13,8 @@
       "Bash(ruby --version:*)",
       "Bash(brew install:*)",
       "Bash(ls:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "WebFetch(domain:ns01.clawstation.ai)"
     ]
   }
 }
