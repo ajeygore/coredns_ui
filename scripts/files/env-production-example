@@ -1,0 +1,11 @@
+# copy this file to env and use that as envfile when executing rails-production.sh
+# env file in folder is added to .gitignore
+# Google OAuth Credentials
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+APP_PUBLIC_FQDN=
+ALLOWED_EMAIL_DOMAINS=""
+WHITELISTED_EMAILS=""
+RAILS_MAX_THREADS=5
+ADMIN_USER_EMAIL=
+RAILS_SERVE_STATIC_FILES=true

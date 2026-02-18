@@ -14,7 +14,8 @@ pickle-email-*.html
 .local
 ./.local
 
-
+# ignore production env file
+scripts/files/env
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*
