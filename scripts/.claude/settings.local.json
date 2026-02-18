@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(ansible-playbook:*)",
-      "Bash(bundle exec rspec:*)"
+      "Bash(bundle exec rspec:*)",
+      "Bash(bundle exec rails runner:*)",
+      "Bash(limactl shell default bash -c:*)",
+      "Bash(limactl shell default bash -lc \"cd /Users/ajey/workspace/coredns_ui && which bundle && ruby --version\":*)"
     ]
   }
 }
