@@ -3,7 +3,7 @@ class ApiToken < ApplicationRecord
 
   belongs_to :user, optional: true
 
-  before_create :generate_token
+  before_validation :generate_token, on: :create
 
   validates :token, presence: true, uniqueness: true
 
