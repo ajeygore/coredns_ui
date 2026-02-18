@@ -14,7 +14,10 @@
       "Bash(brew install:*)",
       "Bash(ls:*)",
       "Bash(docker compose:*)",
-      "WebFetch(domain:ns01.clawstation.ai)"
+      "WebFetch(domain:ns01.clawstation.ai)",
+      "Bash(limactl list:*)",
+      "Bash(ssh:*)",
+      "Bash(limactl shell default:*)"
     ]
   }
 }
