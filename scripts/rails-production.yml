@@ -88,6 +88,10 @@
       become_user: "{{ deploy_user }}"
       when: rust_check.rc != 0
 
+    - name: Ensure Rust default toolchain is set
+      ansible.builtin.command: "{{ home_path }}/.cargo/bin/rustup default stable"
+      become_user: "{{ deploy_user }}"
+
     # ----------------------------------------------------------------
     # 4. Install Ruby from source
     # ----------------------------------------------------------------
