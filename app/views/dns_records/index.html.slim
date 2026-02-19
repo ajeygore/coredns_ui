@@ -46,7 +46,7 @@ h2 class="page-subtitle" MX Records
 
 - mx_records = @dns_zone.dns_records.where(record_type: DnsRecord::MX)
 - if mx_records.any?
-  div class="table-container"
+  div class="table-container mb-6"
     table
       thead
         tr
@@ -66,3 +66,24 @@ h2 class="page-subtitle" MX Records
               = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
 - else
   p class="empty-state" No MX records found for this zone.
+
+h2 class="page-subtitle" Zone Records (Redis)
+
+- if @zone_records.any?
+  div class="table-container"
+    table
+      thead
+        tr
+          th Type
+          th Name
+          th Data
+          th TTL
+      tbody
+        - @zone_records.sort_by { |r| [r[:name].downcase, r[:type]] }.each do |record|
+          tr
+            td = record[:type]
+            td = record[:name]
+            td = record[:data]
+            td = record[:ttl]
+- else
+  p class="empty-state" No records found in Redis for this zone.

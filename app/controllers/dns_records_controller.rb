@@ -22,8 +22,8 @@ class DnsRecordsController < ApplicationController
   end
 
   def index
-    # @dns_records = DnsRecord.where(dns_zone_id: @dns_zone.id).order(:name)
     @dns_record = DnsRecord.new
+    @zone_records = @dns_zone.zone_records
   end
 
   def show

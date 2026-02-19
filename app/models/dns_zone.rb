@@ -7,6 +7,15 @@ class DnsZone < ApplicationRecord
 
   # after_save :refesh_coredns disabling this, since now coredns can reload zones on its own.
 
+  REDIS_TYPE_PARSERS = {
+    'a' => ->(v) { v['ip'] },
+    'ns' => ->(v) { v['host'] },
+    'cname' => ->(v) { v['host'] },
+    'mx' => ->(v) { "#{v['priority']} #{v['host']}" },
+    'txt' => ->(v) { v['text'] },
+    'aaaa' => ->(v) { v['ip6'] }
+  }.freeze
+
   def refesh_coredns
     pid = `sudo pgrep coredns`.strip
 
@@ -14,6 +23,15 @@ class DnsZone < ApplicationRecord
 
     result = system("sudo kill -USR1 #{pid}")
     Rails.logger.info("CoreDNS has been reloaded successfully PID: #{pid} Result: #{result}")
+  end
+
+  # Reads all records from Redis for this zone and returns a flat array of record hashes
+  def zone_records
+    redis = Redis.new(host: redis_host)
+    zone_key = name.end_with?('.') ? name : "#{name}."
+    redis.hgetall(zone_key).flat_map do |record_name, json|
+      parse_redis_entry(record_name, JSON.parse(json))
+    end
   end
 
   def self.refresh_zones
@@ -30,32 +48,13 @@ class DnsZone < ApplicationRecord
   end
 
   def prepare_records(record_name)
-    a = prepare_a record_name
-    ns = prepare_ns record_name
-    txt = prepare_txt record_name
-    mx = prepare_mx record_name
-    cname_data = prepare_cname record_name
     response_hash = {}
-    response_hash[:a] = a unless a.nil?
-    response_hash[:ns] = ns unless ns.nil?
-    response_hash[:txt] = txt unless txt.nil?
-    response_hash[:mx] = mx unless mx.nil?
-
-    unless cname_data.nil?
-      cname_record = dns_records.where(name: record_name, record_type: DnsRecord::CNAME).first
-      response_hash[:cname] = [{
-        host: cname_data,
-        ttl: cname_record.time_to_live.to_i
-      }]
-
-      # Add A record with resolved IP for CNAME
-      resolved_ip = resolve_cname_to_ip(cname_data)
-      if resolved_ip
-        response_hash[:a] = [] if response_hash[:a].nil?
-        response_hash[:a] << { ip: resolved_ip, ttl: cname_record.time_to_live.to_i }
-      end
-    end
-
+    response_hash[:a] = prepare_a(record_name)
+    response_hash[:ns] = prepare_ns(record_name)
+    response_hash[:txt] = prepare_txt(record_name)
+    response_hash[:mx] = prepare_mx(record_name)
+    response_hash.compact!
+    append_cname_records(response_hash, record_name)
     response_hash
   end
 
@@ -63,42 +62,30 @@ class DnsZone < ApplicationRecord
     redis = Redis.new(host: redis_host)
     redis.hdel("#{name}.", record_name)
     record = prepare_records(record_name)
-    redis.hset("#{name}.", record_name, record.to_json) if record.count.positive?
+    redis.hset("#{name}.", record_name, record.to_json) if record.any?
   end
 
   def zone_name_add_acme_challenge; end
 
   def prepare_a(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::A)
-    return nil if records.count.zero?
+    return nil if records.none?
 
-    a = []
-    records.each do |record|
-      a << { ip: record.data, ttl: record.time_to_live.to_i }
-    end
-    a
+    records.map { |record| { ip: record.data, ttl: record.time_to_live.to_i } }
   end
 
   def prepare_ns(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::NS)
-    return nil if records.count.zero?
+    return nil if records.none?
 
-    ns = []
-    records.each do |record|
-      ns << { host: record.data, ttl: record.time_to_live.to_i }
-    end
-    ns
+    records.map { |record| { host: record.data, ttl: record.time_to_live.to_i } }
   end
 
   def prepare_txt(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::TXT)
-    return nil if records.count.zero?
+    return nil if records.none?
 
-    txt = []
-    records.each do |record|
-      txt << { text: record.data, ttl: record.time_to_live.to_i }
-    end
-    txt
+    records.map { |record| { text: record.data, ttl: record.time_to_live.to_i } }
   end
 
   def prepare_cname(record_name)
@@ -112,16 +99,12 @@ class DnsZone < ApplicationRecord
 
   def prepare_mx(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::MX)
-    return nil if records.count.zero?
+    return nil if records.none?
 
-    mx = []
-    records.each do |record|
+    records.map do |record|
       parts = record.data.split(' ', 2)
-      priority = Integer(parts[0])
-      host = parts[1]
-      mx << { priority: priority, host: host, ttl: record.time_to_live.to_i }
+      { priority: Integer(parts[0]), host: parts[1], ttl: record.time_to_live.to_i }
     end
-    mx
   end
 
   def self.create_subdomain(params)
@@ -156,11 +139,36 @@ class DnsZone < ApplicationRecord
 
   private
 
+  def append_cname_records(response_hash, record_name)
+    cname_data = prepare_cname(record_name)
+    return if cname_data.nil?
+
+    cname_record = dns_records.where(name: record_name, record_type: DnsRecord::CNAME).first
+    response_hash[:cname] = [{ host: cname_data, ttl: cname_record.time_to_live.to_i }]
+
+    resolved_ip = resolve_cname_to_ip(cname_data)
+    return unless resolved_ip
+
+    response_hash[:a] ||= []
+    response_hash[:a] << { ip: resolved_ip, ttl: cname_record.time_to_live.to_i }
+  end
+
+  def parse_redis_entry(record_name, data)
+    data.flat_map do |type_key, value|
+      parser = REDIS_TYPE_PARSERS[type_key]
+      next [] unless parser
+
+      Array(value).map do |v|
+        { name: record_name, type: type_key.upcase, data: parser.call(v), ttl: v['ttl'] }
+      end
+    end
+  end
+
   def resolve_cname_to_ip(hostname)
     require 'resolv'
     begin
       Resolv.getaddress(hostname)
-    rescue Resolv::ResolvError, StandardError => e
+    rescue StandardError => e
       Rails.logger.warn("Failed to resolve CNAME #{hostname}: #{e.message}")
       nil
     end
