@@ -19,6 +19,7 @@ class DnsZonesController < ApplicationController
 
   # GET /dns_zones/1 or /dns_zones/1.json
   def show
+    @dns_zone.ensure_default_records
     @dns_records = @dns_zone.dns_records
     @dns_record = DnsRecord.new if @dns_record.nil?
   end
@@ -34,6 +35,7 @@ class DnsZonesController < ApplicationController
   end
 
   def refresh
+    @dns_zone.ensure_default_records
     @dns_zone.refresh
     redirect_to dns_zones_path
   end
@@ -44,7 +46,7 @@ class DnsZonesController < ApplicationController
 
     respond_to do |format|
       if @dns_zone.save
-
+        @dns_zone.ensure_default_records
         format.html { redirect_to dns_zones_path, notice: "Dns zone was successfully created." }
         format.json { render :index, status: :created, location: @dns_zone }
       else

@@ -17,7 +17,8 @@
       "WebFetch(domain:ns01.clawstation.ai)",
       "Bash(limactl list:*)",
       "Bash(ssh:*)",
-      "Bash(limactl shell default:*)"
+      "Bash(limactl shell default:*)",
+      "Bash(bundle exec rspec:*)"
     ]
   }
 }

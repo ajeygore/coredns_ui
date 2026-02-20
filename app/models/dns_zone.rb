@@ -13,8 +13,12 @@ class DnsZone < ApplicationRecord
     'cname' => ->(v) { v['host'] },
     'mx' => ->(v) { "#{v['priority']} #{v['host']}" },
     'txt' => ->(v) { v['text'] },
-    'aaaa' => ->(v) { v['ip6'] }
+    'aaaa' => ->(v) { v['ip6'] },
+    'soa' => ->(v) { "#{v['ns']} #{v['mbox']} #{v['refresh']} #{v['retry']} #{v['expire']} #{v['minttl']}" }
   }.freeze
+
+  DEFAULT_SOA_DATA = "ns1.example.com. admin.example.com. 3600 600 86400 300"
+  DEFAULT_NS_DATA = "ns1.example.com."
 
   def refesh_coredns
     pid = `sudo pgrep coredns`.strip
@@ -32,6 +36,11 @@ class DnsZone < ApplicationRecord
     redis.hgetall(zone_key).flat_map do |record_name, json|
       parse_redis_entry(record_name, JSON.parse(json))
     end
+  end
+
+  def ensure_default_records
+    ensure_soa_record
+    ensure_ns_record
   end
 
   def self.refresh_zones
@@ -53,6 +62,7 @@ class DnsZone < ApplicationRecord
     response_hash[:ns] = prepare_ns(record_name)
     response_hash[:txt] = prepare_txt(record_name)
     response_hash[:mx] = prepare_mx(record_name)
+    response_hash[:soa] = prepare_soa(record_name)
     response_hash.compact!
     append_cname_records(response_hash, record_name)
     response_hash
@@ -107,8 +117,25 @@ class DnsZone < ApplicationRecord
     end
   end
 
+  def prepare_soa(record_name)
+    record = dns_records.find_by(name: record_name, record_type: DnsRecord::SOA)
+    return nil if record.nil?
+
+    parts = record.data.split(' ')
+    {
+      ttl: record.time_to_live.to_i,
+      ns: parts[0],
+      mbox: parts[1],
+      refresh: parts[2].to_i,
+      retry: parts[3].to_i,
+      expire: parts[4].to_i,
+      minttl: parts[5].to_i
+    }
+  end
+
   def self.create_subdomain(params)
     zone = DnsZone.create(name: params[:name], redis_host: ENV.fetch('REDIS_HOST', 'localhost'))
+    zone.ensure_default_records
     if params[:data].present?
       zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data],
                               ttl: '300')
@@ -138,6 +165,28 @@ class DnsZone < ApplicationRecord
   end
 
   private
+
+  def ensure_soa_record
+    return if dns_records.exists?(record_type: DnsRecord::SOA)
+
+    dns_records.create!(
+      name: '@',
+      record_type: DnsRecord::SOA,
+      data: DEFAULT_SOA_DATA,
+      ttl: '3600'
+    )
+  end
+
+  def ensure_ns_record
+    return if dns_records.exists?(record_type: DnsRecord::NS)
+
+    dns_records.create!(
+      name: '@',
+      record_type: DnsRecord::NS,
+      data: DEFAULT_NS_DATA,
+      ttl: '3600'
+    )
+  end
 
   def append_cname_records(response_hash, record_name)
     cname_data = prepare_cname(record_name)
