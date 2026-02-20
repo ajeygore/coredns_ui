@@ -1,4 +1,4 @@
-= form_with(model: dns_zone) do |form|
+= form_with(model: dns_zone, data: { controller: "zone-form" }) do |form|
   - if dns_zone.errors.any?
     div class="flash-notice flash-error mb-4"
       = "#{pluralize(dns_zone.errors.count, "error")} prohibited this zone from being saved:"
@@ -8,7 +8,17 @@
 
   div class="mb-4"
     = form.label :name, "Zone Name", class: "input-label"
-    = form.text_field :name, class: "input-field", placeholder: "example.com"
+    = form.text_field :name, class: "input-field", placeholder: "example.com", data: { zone_form_target: "zoneName", action: "input->zone-form#updateDefaults" }
+
+  div class="mb-4"
+    = form.label :primary_ns, "Primary Nameserver", class: "input-label"
+    = form.text_field :primary_ns, class: "input-field", placeholder: "ns01.example.com.", data: { zone_form_target: "primaryNs" }
+    p class="input-help" Used in SOA and NS records
+
+  div class="mb-4"
+    = form.label :admin_email, "Admin Email (SOA mbox)", class: "input-label"
+    = form.text_field :admin_email, class: "input-field", placeholder: "admin.example.com.", data: { zone_form_target: "adminEmail" }
+    p class="input-help" Contact address in SOA record (DNS format: admin.example.com.)
 
   div class="mb-4"
     = form.label :redis_host, "Redis Host", class: "input-label"

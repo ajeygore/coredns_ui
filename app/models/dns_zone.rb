@@ -5,6 +5,8 @@ class DnsZone < ApplicationRecord
   validates_uniqueness_of :name
   # before_validation :check_if_subdomain_of_existing_domain, on: :create
 
+  attr_accessor :primary_ns, :admin_email
+
   # after_save :refesh_coredns disabling this, since now coredns can reload zones on its own.
 
   REDIS_TYPE_PARSERS = {
@@ -17,8 +19,7 @@ class DnsZone < ApplicationRecord
     'soa' => ->(v) { "#{v['ns']} #{v['mbox']} #{v['refresh']} #{v['retry']} #{v['expire']} #{v['minttl']}" }
   }.freeze
 
-  DEFAULT_SOA_DATA = "ns1.example.com. admin.example.com. 3600 600 86400 300"
-  DEFAULT_NS_DATA = "ns1.example.com."
+  DEFAULT_SOA_TIMING = "3600 600 86400 300"
 
   def refesh_coredns
     pid = `sudo pgrep coredns`.strip
@@ -135,6 +136,8 @@ class DnsZone < ApplicationRecord
 
   def self.create_subdomain(params)
     zone = DnsZone.create(name: params[:name], redis_host: ENV.fetch('REDIS_HOST', 'localhost'))
+    zone.primary_ns = params[:primary_ns]
+    zone.admin_email = params[:admin_email]
     zone.ensure_default_records
     if params[:data].present?
       zone.dns_records.create(name: '@', record_type: DnsRecord::A, data: params[:data],
@@ -166,13 +169,24 @@ class DnsZone < ApplicationRecord
 
   private
 
+  def default_primary_ns
+    "ns01.#{name}."
+  end
+
+  def default_admin_email
+    "admin.#{name}."
+  end
+
   def ensure_soa_record
     return if dns_records.exists?(record_type: DnsRecord::SOA)
+
+    ns = primary_ns.presence || default_primary_ns
+    mbox = admin_email.presence || default_admin_email
 
     dns_records.create!(
       name: '@',
       record_type: DnsRecord::SOA,
-      data: DEFAULT_SOA_DATA,
+      data: "#{ns} #{mbox} #{DEFAULT_SOA_TIMING}",
       ttl: '3600'
     )
   end
@@ -180,10 +194,12 @@ class DnsZone < ApplicationRecord
   def ensure_ns_record
     return if dns_records.exists?(record_type: DnsRecord::NS)
 
+    ns = primary_ns.presence || default_primary_ns
+
     dns_records.create!(
       name: '@',
       record_type: DnsRecord::NS,
-      data: DEFAULT_NS_DATA,
+      data: ns,
       ttl: '3600'
     )
   end
@@ -207,7 +223,7 @@ class DnsZone < ApplicationRecord
       parser = REDIS_TYPE_PARSERS[type_key]
       next [] unless parser
 
-      Array(value).map do |v|
+      (value.is_a?(Array) ? value : [value]).map do |v|
         { name: record_name, type: type_key.upcase, data: parser.call(v), ttl: v['ttl'] }
       end
     end

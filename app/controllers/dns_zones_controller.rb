@@ -47,6 +47,7 @@ class DnsZonesController < ApplicationController
     respond_to do |format|
       if @dns_zone.save
         @dns_zone.ensure_default_records
+        @dns_zone.refresh
         format.html { redirect_to dns_zones_path, notice: "Dns zone was successfully created." }
         format.json { render :index, status: :created, location: @dns_zone }
       else
@@ -95,6 +96,6 @@ class DnsZonesController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def dns_zone_params
-    params.require(:dns_zone).permit(:name, :redis_host)
+    params.require(:dns_zone).permit(:name, :redis_host, :primary_ns, :admin_email)
   end
 end
