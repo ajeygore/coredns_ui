@@ -15,7 +15,7 @@ div class="card mb-6"
       div class="flex-1 flex gap-2 hidden" data-record-type-target="mxFields"
         = form.text_field :priority, class: "input-field w-20", style: "flex: none", placeholder: "Priority", data: { "record-type-target": "priority" }
         = form.text_field :host, class: "input-field flex-1", placeholder: "Host", data: { "record-type-target": "host" }
-        = form.hidden_field :data, data: { "record-type-target": "data" }
+        = form.hidden_field :data, disabled: true, data: { "record-type-target": "data" }
       = form.text_field :ttl, class: "input-field", value: "300", style: "width: 4rem; flex: none"
       = form.submit "Add Record", class: "btn btn-primary"
 

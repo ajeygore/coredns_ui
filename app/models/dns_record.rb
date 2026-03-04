@@ -102,7 +102,7 @@ class DnsRecord < ApplicationRecord
 
   def add_mx
     priority, host = parse_mx_data
-    record = { mx: [{ priority: priority, host: host, ttl: time_to_live.to_i }] }
+    record = { mx: [{ preference: priority, host: host, ttl: time_to_live.to_i }] }
     zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
     redis = Redis.new(host: dns_zone.redis_host)
     redis.hset(zone_name, name, record.to_json)
