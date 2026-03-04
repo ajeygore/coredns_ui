@@ -13,7 +13,7 @@ class DnsZone < ApplicationRecord
     'a' => ->(v) { v['ip'] },
     'ns' => ->(v) { v['host'] },
     'cname' => ->(v) { v['host'] },
-    'mx' => ->(v) { "#{v['priority']} #{v['host']}" },
+    'mx' => ->(v) { "#{v['preference']} #{v['host']}" },
     'txt' => ->(v) { v['text'] },
     'aaaa' => ->(v) { v['ip6'] },
     'soa' => ->(v) { "#{v['ns']} #{v['mbox']} #{v['refresh']} #{v['retry']} #{v['expire']} #{v['minttl']}" }
@@ -114,7 +114,7 @@ class DnsZone < ApplicationRecord
 
     records.map do |record|
       parts = record.data.split(' ', 2)
-      { priority: Integer(parts[0]), host: parts[1], ttl: record.time_to_live.to_i }
+      { preference: Integer(parts[0]), host: parts[1], ttl: record.time_to_live.to_i }
     end
   end
 
@@ -170,7 +170,7 @@ class DnsZone < ApplicationRecord
   private
 
   def default_primary_ns
-    "ns01.#{name}."
+    ENV.fetch('DEFAULT_PRIMARY_NS', "ns01.#{name}.")
   end
 
   def default_admin_email
