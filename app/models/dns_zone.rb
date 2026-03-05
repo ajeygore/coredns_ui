@@ -15,7 +15,7 @@ class DnsZone < ApplicationRecord
     'cname' => ->(v) { v['host'] },
     'mx' => ->(v) { "#{v['preference']} #{v['host']}" },
     'txt' => ->(v) { v['text'] },
-    'aaaa' => ->(v) { v['ip6'] },
+    'aaaa' => ->(v) { v['ip'] },
     'soa' => ->(v) { "#{v['ns']} #{v['mbox']} #{v['refresh']} #{v['retry']} #{v['expire']} #{v['minttl']}" }
   }.freeze
 
@@ -60,6 +60,7 @@ class DnsZone < ApplicationRecord
   def prepare_records(record_name)
     response_hash = {}
     response_hash[:a] = prepare_a(record_name)
+    response_hash[:aaaa] = prepare_aaaa(record_name)
     response_hash[:ns] = prepare_ns(record_name)
     response_hash[:txt] = prepare_txt(record_name)
     response_hash[:mx] = prepare_mx(record_name)
@@ -80,6 +81,13 @@ class DnsZone < ApplicationRecord
 
   def prepare_a(record_name)
     records = dns_records.where(name: record_name, record_type: DnsRecord::A)
+    return nil if records.none?
+
+    records.map { |record| { ip: record.data, ttl: record.time_to_live.to_i } }
+  end
+
+  def prepare_aaaa(record_name)
+    records = dns_records.where(name: record_name, record_type: DnsRecord::AAAA)
     return nil if records.none?
 
     records.map { |record| { ip: record.data, ttl: record.time_to_live.to_i } }

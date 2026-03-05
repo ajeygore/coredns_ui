@@ -89,15 +89,10 @@ class DnsRecord < ApplicationRecord
   end
 
   def add_aaaa
-    zone_name = dns_zone.name
-    zone_name += '.' unless dns_zone.name.end_with?('.')
-    record = {
-      aaaa: [
-        ip6: value,
-        ttl: time_to_live
-      ]
-    }
-    REDIS.hset(zone_name, name, record.to_json)
+    zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
+    record = { aaaa: [{ ip: data, ttl: time_to_live.to_i }] }
+    redis = Redis.new(host: dns_zone.redis_host)
+    redis.hset(zone_name, name, record.to_json)
   end
 
   def add_mx

@@ -205,6 +205,66 @@ RSpec.describe DnsRecord, type: :model do
     end
   end
 
+  describe "AAAA record handling" do
+    let(:dns_zone) { DnsZone.create!(name: 'example.com', redis_host: 'localhost') }
+
+    it 'creates AAAA record and prepares correct format' do
+      dns_zone.dns_records.create!(name: 'www', record_type: DnsRecord::AAAA, data: '2001:db8::1')
+
+      result = dns_zone.prepare_aaaa('www')
+      expect(result).to eq([{ ip: '2001:db8::1', ttl: 300 }])
+    end
+
+    it 'includes AAAA in prepare_records' do
+      dns_zone.dns_records.create!(name: 'www', record_type: DnsRecord::AAAA, data: '2001:db8::1')
+      dns_zone.dns_records.create!(name: 'www', record_type: DnsRecord::A, data: '1.1.1.1')
+
+      result = dns_zone.prepare_records('www')
+      expect(result[:a]).to eq([{ ip: '1.1.1.1', ttl: 300 }])
+      expect(result[:aaaa]).to eq([{ ip: '2001:db8::1', ttl: 300 }])
+    end
+
+    it 'writes correct JSON for CoreDNS AAAA records' do
+      dns_zone.dns_records.create!(name: 'ipv6', record_type: DnsRecord::AAAA, data: '::1', ttl: 600)
+
+      result = dns_zone.prepare_records('ipv6')
+      json = result.to_json
+      parsed = JSON.parse(json)
+      expect(parsed['aaaa']).to be_a(Array)
+      expect(parsed['aaaa'].first['ip']).to eq('::1')
+      expect(parsed['aaaa'].first['ttl']).to eq(600)
+    end
+  end
+
+  describe "TXT record handling" do
+    let(:dns_zone) { DnsZone.create!(name: 'example.com', redis_host: 'localhost') }
+
+    it 'creates TXT record and prepares correct format' do
+      dns_zone.dns_records.create!(name: '@', record_type: DnsRecord::TXT, data: 'v=spf1 include:example.com ~all')
+
+      result = dns_zone.prepare_txt('@')
+      expect(result).to eq([{ text: 'v=spf1 include:example.com ~all', ttl: 300 }])
+    end
+
+    it 'handles multiple TXT records for same name' do
+      dns_zone.dns_records.create!(name: '@', record_type: DnsRecord::TXT, data: 'v=spf1 include:example.com ~all')
+      dns_zone.dns_records.create!(name: '@', record_type: DnsRecord::TXT, data: 'google-site-verification=abc123')
+
+      result = dns_zone.prepare_txt('@')
+      expect(result.length).to eq(2)
+      texts = result.map { |r| r[:text] }
+      expect(texts).to include('v=spf1 include:example.com ~all')
+      expect(texts).to include('google-site-verification=abc123')
+    end
+
+    it 'includes TXT records in prepare_records' do
+      dns_zone.dns_records.create!(name: '@', record_type: DnsRecord::TXT, data: 'v=spf1 ~all')
+
+      result = dns_zone.prepare_records('@')
+      expect(result[:txt]).to eq([{ text: 'v=spf1 ~all', ttl: 300 }])
+    end
+  end
+
   describe "CoreDNS compatibility tests" do
     let(:dns_zone) { DnsZone.create!(name: 'soranova.ai', redis_host: 'localhost') }
 

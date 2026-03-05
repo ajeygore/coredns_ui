@@ -19,8 +19,8 @@ RSpec.describe DnsZone, type: :model do
 
       expect(result).to be_an(Array)
       expect(result.length).to eq(2)
-      expect(result).to include({ priority: 10, host: 'mail1.example.com', ttl: 300 })
-      expect(result).to include({ priority: 20, host: 'mail2.example.com', ttl: 600 })
+      expect(result).to include({ preference: 10, host: 'mail1.example.com', ttl: 300 })
+      expect(result).to include({ preference: 20, host: 'mail2.example.com', ttl: 600 })
     end
 
     it 'ignores MX records with different names' do
@@ -39,7 +39,7 @@ RSpec.describe DnsZone, type: :model do
 
       result = dns_zone.prepare_mx('test')
 
-      expect(result.first[:priority]).to eq(5)
+      expect(result.first[:preference]).to eq(5)
       expect(result.first[:host]).to eq('mail.subdomain.example.com')
       expect(result.first[:ttl]).to eq(120)
     end
@@ -53,7 +53,7 @@ RSpec.describe DnsZone, type: :model do
       result = dns_zone.prepare_records('test')
 
       expect(result[:mx]).to be_present
-      expect(result[:mx].first[:priority]).to eq(10)
+      expect(result[:mx].first[:preference]).to eq(10)
       expect(result[:mx].first[:host]).to eq('mail.example.com')
       expect(result[:a]).to be_present
     end
@@ -80,7 +80,7 @@ RSpec.describe DnsZone, type: :model do
     it 'includes MX records in Redis refresh' do
       DnsRecord.create!(dns_zone: dns_zone, record_type: DnsRecord::MX, name: 'test', data: '10 mail.example.com')
 
-      expected_json = { mx: [{ priority: 10, host: 'mail.example.com', ttl: 300 }] }.to_json
+      expected_json = { mx: [{ preference: 10, host: 'mail.example.com', ttl: 300 }] }.to_json
       expect(redis_mock).to receive(:hset).with("#{dns_zone.name}.", 'test', expected_json)
 
       dns_zone.refresh

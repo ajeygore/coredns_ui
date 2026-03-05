@@ -64,7 +64,7 @@ RSpec.describe DnsRecord, type: :model do
     let(:mx_record) { DnsRecord.create!(dns_zone: dns_zone, record_type: DnsRecord::MX, data: '10 mail.example.com', name: 'test') }
 
     it 'creates correct Redis entry for MX record' do
-      expected_record = { mx: [{ priority: 10, host: 'mail.example.com', ttl: 300 }] }
+      expected_record = { mx: [{ preference: 10, host: 'mail.example.com', ttl: 300 }] }
       expect(redis_mock).to receive(:hset).with("#{dns_zone.name}.", 'test', expected_record.to_json)
 
       mx_record.add_mx
@@ -72,7 +72,7 @@ RSpec.describe DnsRecord, type: :model do
 
     it 'handles zone name without trailing dot' do
       dns_zone.update(name: 'example.com')
-      expected_record = { mx: [{ priority: 10, host: 'mail.example.com', ttl: 300 }] }
+      expected_record = { mx: [{ preference: 10, host: 'mail.example.com', ttl: 300 }] }
       expect(redis_mock).to receive(:hset).with('example.com.', 'test', expected_record.to_json)
 
       mx_record.add_mx
@@ -80,7 +80,7 @@ RSpec.describe DnsRecord, type: :model do
 
     it 'handles zone name with trailing dot' do
       dns_zone.update(name: 'example.com.')
-      expected_record = { mx: [{ priority: 10, host: 'mail.example.com', ttl: 300 }] }
+      expected_record = { mx: [{ preference: 10, host: 'mail.example.com', ttl: 300 }] }
       expect(redis_mock).to receive(:hset).with('example.com.', 'test', expected_record.to_json)
 
       mx_record.add_mx
@@ -88,7 +88,7 @@ RSpec.describe DnsRecord, type: :model do
 
     it 'uses correct TTL value' do
       mx_record.update(ttl: 600)
-      expected_record = { mx: [{ priority: 10, host: 'mail.example.com', ttl: 600 }] }
+      expected_record = { mx: [{ preference: 10, host: 'mail.example.com', ttl: 600 }] }
       expect(redis_mock).to receive(:hset).with("#{dns_zone.name}.", 'test', expected_record.to_json)
 
       mx_record.add_mx

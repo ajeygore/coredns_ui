@@ -8,7 +8,7 @@ div class="page-header"
 div class="card mb-6"
   = form_with(model: [@dns_zone, @dns_record], local: true, data: { controller: "record-type", action: "submit->record-type#handleFormSubmit" }) do |form|
     div class="record-form-row"
-      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX], DnsRecord::A), { prompt: "Select Record Type" }, class: "select-field", data: { action: "change->record-type#toggleFields" }
+      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::AAAA, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX], DnsRecord::A), { prompt: "Select Record Type" }, class: "select-field", data: { action: "change->record-type#toggleFields" }
       = form.text_field :name, class: "input-field", placeholder: "Record Name", style: "width: 150px; flex: none"
       div class="flex-1 flex gap-2" data-record-type-target="standardField"
         = form.text_field :data, class: "input-field flex-1", placeholder: "Record Value"
