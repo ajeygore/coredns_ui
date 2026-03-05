@@ -48,6 +48,7 @@
                 <%= link_to "API Tokens", api_tokens_path, class: "nav-link" %>
                 <% if current_user.admin? %>
                   <%= link_to "Users", users_path, class: "nav-link" %>
+                  <%= link_to "Settings", settings_path, class: "nav-link" %>
                 <% end %>
 
                 <div class="flex items-center space-x-3 ml-4 pl-4" style="border-left: 1px solid var(--color-border-primary)">

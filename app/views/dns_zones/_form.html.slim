@@ -1,4 +1,4 @@
-= form_with(model: dns_zone, data: { controller: "zone-form" }) do |form|
+= form_with(model: dns_zone, data: { controller: "zone-form", zone_form_default_ns_value: ServerSetting.default_primary_ns, zone_form_default_email_value: ServerSetting.default_admin_email }) do |form|
   - if dns_zone.errors.any?
     div class="flash-notice flash-error mb-4"
       = "#{pluralize(dns_zone.errors.count, "error")} prohibited this zone from being saved:"

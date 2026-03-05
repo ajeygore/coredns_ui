@@ -178,11 +178,11 @@ class DnsZone < ApplicationRecord
   private
 
   def default_primary_ns
-    ENV.fetch('DEFAULT_PRIMARY_NS', "ns01.#{name}.")
+    ServerSetting.default_primary_ns || "ns01.#{name}."
   end
 
   def default_admin_email
-    "admin.#{name}."
+    ServerSetting.default_admin_email || "admin.#{name}."
   end
 
   def ensure_soa_record
@@ -194,7 +194,7 @@ class DnsZone < ApplicationRecord
     dns_records.create!(
       name: '@',
       record_type: DnsRecord::SOA,
-      data: "#{ns} #{mbox} #{DEFAULT_SOA_TIMING}",
+      data: "#{ns} #{mbox} #{ServerSetting.soa_timing}",
       ttl: '3600'
     )
   end

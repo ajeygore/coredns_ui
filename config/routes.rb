@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   resources :users, only: %i[index create update destroy]
   resources :api_tokens, only: %i[index new create destroy]
+  resource :settings, only: %i[show update] do
+    post :backup, on: :collection
+    post :restore, on: :collection
+  end
   resources :dns_zones do
     resources :dns_records
   end

@@ -1,0 +1,68 @@
+div class="page-header"
+  h1 class="page-title" Settings
+
+h2 class="page-subtitle" Server Defaults
+
+div class="card mb-6"
+  = form_with url: settings_path, method: :patch, local: true do |form|
+    div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+      div
+        = form.label :default_primary_ns, "Primary Nameserver", class: "input-label"
+        = form.text_field :default_primary_ns, value: @settings['default_primary_ns'], class: "input-field", placeholder: "ns01.example.com."
+        p class="input-help" Default NS for new zones (SOA & NS records)
+
+      div
+        = form.label :default_admin_email, "Admin Email (SOA mbox)", class: "input-label"
+        = form.text_field :default_admin_email, value: @settings['default_admin_email'], class: "input-field", placeholder: "admin.example.com."
+        p class="input-help" Contact address in SOA records (DNS format)
+
+      div
+        = form.label :default_redis_host, "Default Redis Host", class: "input-label"
+        = form.text_field :default_redis_host, value: @settings['default_redis_host'], class: "input-field", placeholder: "127.0.0.1"
+        p class="input-help" Redis host for new zones
+
+    h3 class="page-subtitle" SOA Timing Defaults
+
+    div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"
+      div
+        = form.label :soa_refresh, "Refresh", class: "input-label"
+        = form.text_field :soa_refresh, value: @settings['soa_refresh'] || '3600', class: "input-field", placeholder: "3600"
+        p class="input-help" seconds
+
+      div
+        = form.label :soa_retry, "Retry", class: "input-label"
+        = form.text_field :soa_retry, value: @settings['soa_retry'] || '600', class: "input-field", placeholder: "600"
+        p class="input-help" seconds
+
+      div
+        = form.label :soa_expire, "Expire", class: "input-label"
+        = form.text_field :soa_expire, value: @settings['soa_expire'] || '86400', class: "input-field", placeholder: "86400"
+        p class="input-help" seconds
+
+      div
+        = form.label :soa_minttl, "Min TTL", class: "input-label"
+        = form.text_field :soa_minttl, value: @settings['soa_minttl'] || '300', class: "input-field", placeholder: "300"
+        p class="input-help" seconds
+
+    div
+      = form.submit "Save Settings", class: "btn btn-primary"
+
+h2 class="page-subtitle" Backup & Restore
+
+div class="card mb-6"
+  div class="flex flex-col gap-4"
+    div
+      h3 class="font-semibold mb-2" style="color: var(--color-text-primary)" Download Backup
+      p class="mb-3 text-sm" style="color: var(--color-text-secondary)" Export all zones and DNS records as a JSON file.
+      = form_with url: backup_settings_path, method: :post, local: true do
+        button type="submit" class="btn btn-primary" Download Backup
+
+    hr style="border-color: var(--color-border-primary)"
+
+    div
+      h3 class="font-semibold mb-2" style="color: var(--color-text-primary)" Restore from Backup
+      p class="mb-3 text-sm" style="color: var(--color-text-secondary)" Import zones and records from a backup JSON file. Existing zones will be merged (not overwritten).
+      = form_with url: restore_settings_path, method: :post, multipart: true, local: true do |form|
+        div class="flex items-center gap-3"
+          = form.file_field :backup_file, accept: ".json", class: "input-field flex-1"
+          = form.submit "Restore", class: "btn btn-primary"
