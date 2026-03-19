@@ -3,6 +3,12 @@ div class="page-header"
   - if current_user.admin?
     = link_to "Add a DNS Zone", new_dns_zone_path, class: "btn btn-primary"
 
+div class="card" style="padding: 12px; margin-bottom: 16px;" data-controller="network-graph"
+  div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;"
+    span style="font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;" Network Traffic
+  div style="height: 120px;"
+    canvas data-network-graph-target="canvas"
+
 div class="card" style="padding: 0"
   - @dns_zones.each do |dns_zone|
     div class="zone-item"
