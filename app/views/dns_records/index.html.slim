@@ -27,8 +27,8 @@ div class="card mb-6"
       = form.text_field :ttl, class: "input-field", value: "300", style: "width: 4rem; flex: none"
       = form.submit "Add Record", class: "btn btn-primary"
 
-div data-controller="record-search"
-  div class="mb-4"
+div data-controller="record-search" class="records-scroll-area"
+  div class="sticky top-0 z-10 pb-4" style="background-color: var(--color-bg-primary)"
     input type="text" class="input-field" placeholder="Search records by name, type, or value..." data-record-search-target="input" data-action="input->record-search#filter"
 
   h2 class="page-subtitle" SOA Records
