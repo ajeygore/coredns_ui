@@ -286,11 +286,11 @@
           WantedBy=multi-user.target
       notify: Restart Puma
 
-    - name: Enable and start Puma
+    - name: Enable and restart Puma
       ansible.builtin.systemd:
         name: coredns_ui
         enabled: yes
-        state: started
+        state: restarted
         daemon_reload: yes
 
   handlers:
