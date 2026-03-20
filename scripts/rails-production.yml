@@ -172,14 +172,6 @@
         state: present
       environment: "{{ ruby_env }}"
 
-    - name: Copy .env file to app directory
-      ansible.builtin.copy:
-        src: "{{ env_file }}"
-        dest: "{{ app_path }}/.env"
-        owner: "{{ deploy_user }}"
-        group: "{{ deploy_user }}"
-        mode: "0600"
-
     # ----------------------------------------------------------------
     # 8. SECRET_KEY_BASE (root tasks)
     # ----------------------------------------------------------------
@@ -224,6 +216,12 @@
             dest: "{{ app_path }}"
             version: main
             accept_hostkey: yes
+
+        - name: Copy .env file to app directory
+          ansible.builtin.copy:
+            src: "{{ env_file }}"
+            dest: "{{ app_path }}/.env"
+            mode: "0600"
 
         - name: Configure bundle path and install gems
           ansible.builtin.shell: |
