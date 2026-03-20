@@ -18,7 +18,10 @@
       "Bash(limactl list:*)",
       "Bash(ssh:*)",
       "Bash(limactl shell default:*)",
-      "Bash(bundle exec rspec:*)"
+      "Bash(bundle exec rspec:*)",
+      "Bash(bash:*)",
+      "Bash(curl:*)",
+      "Bash(script is in scripts/rails-production.sh env file is scripts/files/env port 8000 user deploy password HPrx0X5MMNm4QgGatZ+tAAAAAAECAwQF host name infra01.clawstation.ai)"
     ]
   }
 }
