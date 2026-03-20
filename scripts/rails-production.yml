@@ -53,24 +53,47 @@
     # ----------------------------------------------------------------
     # 3. Install Rust (needed for Ruby YJIT)
     # ----------------------------------------------------------------
-    - name: Install Rust if missing and set stable toolchain
-      ansible.builtin.shell: |
-        if ! {{ home_path }}/.cargo/bin/rustc --version > /dev/null 2>&1; then
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        fi
-        {{ home_path }}/.cargo/bin/rustup default stable
-      become_user: "{{ deploy_user }}"
-      changed_when: true
-
-    # ----------------------------------------------------------------
-    # 4. Install Ruby from source
-    # ----------------------------------------------------------------
     - name: Check if Ruby {{ ruby_version }} is installed
       ansible.builtin.command: /usr/local/bin/ruby -v
       register: ruby_check
       changed_when: false
       failed_when: false
 
+    - name: Check if NVM is installed
+      ansible.builtin.stat:
+        path: "{{ home_path }}/.nvm/nvm.sh"
+      register: nvm_stat
+
+    # ----------------------------------------------------------------
+    # 4. Deploy-user setup (single become block to minimise session spawns)
+    # ----------------------------------------------------------------
+    - name: Setup deploy-user toolchain
+      become_user: "{{ deploy_user }}"
+      block:
+        - name: Install Rust if missing and set stable toolchain
+          ansible.builtin.shell: |
+            if ! {{ home_path }}/.cargo/bin/rustc --version > /dev/null 2>&1; then
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            fi
+            {{ home_path }}/.cargo/bin/rustup default stable
+          changed_when: true
+
+        - name: Install NVM
+          ansible.builtin.shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
+          when: not nvm_stat.stat.exists
+
+        - name: Install Node.js {{ node_version }} and Yarn
+          ansible.builtin.shell: |
+            export NVM_DIR="{{ home_path }}/.nvm"
+            . "$NVM_DIR/nvm.sh"
+            nvm install {{ node_version }}
+            npm install yarn -g
+          args:
+            executable: /bin/bash
+
+    # ----------------------------------------------------------------
+    # 5. Install Ruby from source (runs as root)
+    # ----------------------------------------------------------------
     - name: Install Ruby {{ ruby_version }} from source
       when: ruby_check.rc != 0 or ruby_version not in (ruby_check.stdout | default(''))
       block:
@@ -106,11 +129,15 @@
             PATH: "{{ home_path }}/.cargo/bin:{{ ansible_facts['env']['PATH'] }}"
 
         - name: Clean up Ruby source
-          ansible.builtin.shell: rm -rf "/tmp/ruby-{{ ruby_version }}.tar.gz" "/tmp/ruby-{{ ruby_version }}"
-          changed_when: true
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "/tmp/ruby-{{ ruby_version }}.tar.gz"
+            - "/tmp/ruby-{{ ruby_version }}"
 
     # ----------------------------------------------------------------
-    # 5. Configure GEM_HOME for deploy user
+    # 6. Configure GEM_HOME for deploy user
     # ----------------------------------------------------------------
     - name: Set GEM_HOME and PATH in .bashrc
       ansible.builtin.blockinfile:
@@ -122,30 +149,7 @@
         owner: "{{ deploy_user }}"
 
     # ----------------------------------------------------------------
-    # 6. Install NVM, Node.js, and Yarn
-    # ----------------------------------------------------------------
-    - name: Check if NVM is installed
-      ansible.builtin.stat:
-        path: "{{ home_path }}/.nvm/nvm.sh"
-      register: nvm_stat
-
-    - name: Install NVM
-      ansible.builtin.shell: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh | bash
-      become_user: "{{ deploy_user }}"
-      when: not nvm_stat.stat.exists
-
-    - name: Install Node.js {{ node_version }} and Yarn
-      ansible.builtin.shell: |
-        export NVM_DIR="{{ home_path }}/.nvm"
-        . "$NVM_DIR/nvm.sh"
-        nvm install {{ node_version }}
-        npm install yarn -g
-      become_user: "{{ deploy_user }}"
-      args:
-        executable: /bin/bash
-
-    # ----------------------------------------------------------------
-    # 7. Backup and clone application
+    # 7. Backup and clone application (root tasks)
     # ----------------------------------------------------------------
     - name: Backup and rotate old releases
       ansible.builtin.shell: |
@@ -162,38 +166,10 @@
         fi
       changed_when: true
 
-    - name: Clone coredns_ui repository
-      ansible.builtin.git:
-        repo: "https://github.com/ajeygore/coredns_ui.git"
-        dest: "{{ app_path }}"
-        version: main
-        accept_hostkey: yes
-      become_user: "{{ deploy_user }}"
-
-    - name: Ensure deploy user owns application directory
-      ansible.builtin.file:
-        path: "{{ app_path }}"
-        owner: "{{ deploy_user }}"
-        group: "{{ deploy_user }}"
-        recurse: yes
-
-    # ----------------------------------------------------------------
-    # 8. Install gems, deploy env, precompile assets
-    # ----------------------------------------------------------------
     - name: Install Bundler gem
       community.general.gem:
         name: bundler
         state: present
-      environment: "{{ ruby_env }}"
-
-    - name: Configure bundle path and install gems
-      ansible.builtin.shell: |
-        bundle config set --local path {{ home_path }}/.bundledgems
-        bundle install --jobs 4 --retry 3
-      args:
-        chdir: "{{ app_path }}"
-        executable: /bin/bash
-      become_user: "{{ deploy_user }}"
       environment: "{{ ruby_env }}"
 
     - name: Copy .env file to app directory
@@ -205,7 +181,7 @@
         mode: "0600"
 
     # ----------------------------------------------------------------
-    # 9. SECRET_KEY_BASE
+    # 8. SECRET_KEY_BASE (root tasks)
     # ----------------------------------------------------------------
     - name: Check if persistent SECRET_KEY_BASE file exists
       ansible.builtin.stat:
@@ -228,9 +204,6 @@
       ansible.builtin.set_fact:
         secret_key_base: "{{ secret_key_base_raw.stdout | trim }}"
 
-    # ----------------------------------------------------------------
-    # 10. Database setup and asset precompilation
-    # ----------------------------------------------------------------
     - name: Create production database directory
       ansible.builtin.file:
         path: "{{ home_path }}/coredns-app-db"
@@ -239,27 +212,54 @@
         group: "{{ deploy_user }}"
         mode: "0755"
 
-    - name: Run database migrations
-      ansible.builtin.command:
-        cmd: bundle exec rails db:migrate
-        chdir: "{{ app_path }}"
+    # ----------------------------------------------------------------
+    # 9. Clone, bundle, migrate, precompile (single deploy-user block)
+    # ----------------------------------------------------------------
+    - name: Deploy application
       become_user: "{{ deploy_user }}"
-      environment:
-        RAILS_ENV: production
-        SECRET_KEY_BASE: "{{ secret_key_base }}"
-        GEM_HOME: "{{ gem_home }}"
-        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+      block:
+        - name: Clone coredns_ui repository
+          ansible.builtin.git:
+            repo: "https://github.com/ajeygore/coredns_ui.git"
+            dest: "{{ app_path }}"
+            version: main
+            accept_hostkey: yes
 
-    - name: Precompile assets
-      ansible.builtin.command:
-        cmd: bundle exec rails assets:precompile
-        chdir: "{{ app_path }}"
-      become_user: "{{ deploy_user }}"
-      environment:
-        RAILS_ENV: production
-        SECRET_KEY_BASE: "{{ secret_key_base }}"
-        GEM_HOME: "{{ gem_home }}"
-        PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+        - name: Configure bundle path and install gems
+          ansible.builtin.shell: |
+            bundle config set --local path {{ home_path }}/.bundledgems
+            bundle install --jobs 4 --retry 3
+          args:
+            chdir: "{{ app_path }}"
+            executable: /bin/bash
+          environment: "{{ ruby_env }}"
+
+        - name: Run database migrations
+          ansible.builtin.command:
+            cmd: bundle exec rails db:migrate
+            chdir: "{{ app_path }}"
+          environment:
+            RAILS_ENV: production
+            SECRET_KEY_BASE: "{{ secret_key_base }}"
+            GEM_HOME: "{{ gem_home }}"
+            PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+
+        - name: Precompile assets
+          ansible.builtin.command:
+            cmd: bundle exec rails assets:precompile
+            chdir: "{{ app_path }}"
+          environment:
+            RAILS_ENV: production
+            SECRET_KEY_BASE: "{{ secret_key_base }}"
+            GEM_HOME: "{{ gem_home }}"
+            PATH: "{{ gem_home }}/bin:/usr/local/bin:{{ ansible_facts['env']['PATH'] }}"
+
+    - name: Ensure deploy user owns application directory
+      ansible.builtin.file:
+        path: "{{ app_path }}"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        recurse: yes
 
     # ----------------------------------------------------------------
     # 11. Create systemd service
