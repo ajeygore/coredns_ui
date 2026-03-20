@@ -8,7 +8,7 @@ div class="page-header"
 div class="card mb-6"
   = form_with(model: [@dns_zone, @dns_record], local: true, data: { controller: "record-type", action: "submit->record-type#handleFormSubmit" }) do |form|
     div class="record-form-row"
-      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::AAAA, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX], DnsRecord::A), { prompt: "Select Record Type" }, class: "select-field", data: { action: "change->record-type#toggleFields" }
+      = form.select :record_type, options_for_select([DnsRecord::A, DnsRecord::AAAA, DnsRecord::NS, DnsRecord::TXT, DnsRecord::CNAME, DnsRecord::MX, DnsRecord::SOA], DnsRecord::A), { prompt: "Select Record Type" }, class: "select-field", data: { action: "change->record-type#toggleFields" }
       = form.text_field :name, class: "input-field", placeholder: "Record Name", style: "width: 150px; flex: none"
       div class="flex-1 flex gap-2" data-record-type-target="standardField"
         = form.text_field :data, class: "input-field flex-1", placeholder: "Record Value"
@@ -16,74 +16,114 @@ div class="card mb-6"
         = form.text_field :priority, class: "input-field w-20", style: "flex: none", placeholder: "Priority", data: { "record-type-target": "priority" }
         = form.text_field :host, class: "input-field flex-1", placeholder: "Host", data: { "record-type-target": "host" }
         = form.hidden_field :data, disabled: true, data: { "record-type-target": "data" }
+      div class="flex-1 flex gap-2 hidden" data-record-type-target="soaFields"
+        = form.text_field :soa_ns, class: "input-field", style: "flex: 2", placeholder: "Primary NS (e.g. ns1.example.com.)", data: { "record-type-target": "soaNs" }
+        = form.text_field :soa_mbox, class: "input-field", style: "flex: 2", placeholder: "Admin Email (e.g. admin.example.com.)", data: { "record-type-target": "soaMbox" }
+        = form.text_field :soa_refresh, class: "input-field", style: "width: 5rem; flex: none", placeholder: "Refresh", value: "3600", data: { "record-type-target": "soaRefresh" }
+        = form.text_field :soa_retry, class: "input-field", style: "width: 5rem; flex: none", placeholder: "Retry", value: "600", data: { "record-type-target": "soaRetry" }
+        = form.text_field :soa_expire, class: "input-field", style: "width: 5rem; flex: none", placeholder: "Expire", value: "86400", data: { "record-type-target": "soaExpire" }
+        = form.text_field :soa_minttl, class: "input-field", style: "width: 5rem; flex: none", placeholder: "Min TTL", value: "300", data: { "record-type-target": "soaMinttl" }
+        = form.hidden_field :data, disabled: true, data: { "record-type-target": "soaData" }
       = form.text_field :ttl, class: "input-field", value: "300", style: "width: 4rem; flex: none"
       = form.submit "Add Record", class: "btn btn-primary"
 
-h2 class="page-subtitle" DNS Records
+div data-controller="record-search"
+  div class="mb-4"
+    input type="text" class="input-field" placeholder="Search records by name, type, or value..." data-record-search-target="input" data-action="input->record-search#filter"
 
-- non_mx_records = @dns_zone.dns_records.where.not(record_type: DnsRecord::MX)
-- if non_mx_records.any?
-  div class="table-container mb-6"
-    table
-      thead
-        tr
-          th Type
-          th Name
-          th Data
-          th TTL
-          th Actions
-      tbody
-        - non_mx_records.order("LOWER(name)").each do |record|
+  h2 class="page-subtitle" SOA Records
+
+  - soa_records = @dns_zone.dns_records.where(record_type: DnsRecord::SOA)
+  - if soa_records.any?
+    div class="table-container mb-6"
+      table data-record-search-target="table"
+        thead
           tr
-            td = record.record_type
-            td = record.name
-            td = record.data
-            td = record.ttl
-            td
-              = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
+            th Name
+            th Primary NS
+            th Admin Email
+            th Timing (refresh retry expire minttl)
+            th TTL
+            th Actions
+        tbody
+          - soa_records.order("LOWER(name)").each do |record|
+            - parts = record.data.split(' ')
+            tr
+              td = record.name
+              td = parts[0]
+              td = parts[1]
+              td = parts[2..5]&.join(' ')
+              td = record.ttl
+              td
+                = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure? Deleting the SOA record may break zone resolution.' }, class: "btn btn-danger btn-sm"
+  - else
+    p class="empty-state" No SOA records found for this zone.
 
-h2 class="page-subtitle" MX Records
+  h2 class="page-subtitle" DNS Records
 
-- mx_records = @dns_zone.dns_records.where(record_type: DnsRecord::MX)
-- if mx_records.any?
-  div class="table-container mb-6"
-    table
-      thead
-        tr
-          th Name
-          th Priority
-          th Host
-          th TTL
-          th Actions
-      tbody
-        - mx_records.order("LOWER(name)").each do |record|
+  - non_mx_records = @dns_zone.dns_records.where.not(record_type: [DnsRecord::MX, DnsRecord::SOA])
+  - if non_mx_records.any?
+    div class="table-container mb-6"
+      table data-record-search-target="table"
+        thead
           tr
-            td = record.name
-            td = record.mx_priority
-            td = record.mx_host
-            td = record.ttl
-            td
-              = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
-- else
-  p class="empty-state" No MX records found for this zone.
+            th Type
+            th Name
+            th Data
+            th TTL
+            th Actions
+        tbody
+          - non_mx_records.order("LOWER(name)").each do |record|
+            tr
+              td = record.record_type
+              td = record.name
+              td = record.data
+              td = record.ttl
+              td
+                = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
 
-h2 class="page-subtitle" Zone Records (Redis)
+  h2 class="page-subtitle" MX Records
 
-- if @zone_records.any?
-  div class="table-container"
-    table
-      thead
-        tr
-          th Type
-          th Name
-          th Data
-          th TTL
-      tbody
-        - @zone_records.sort_by { |r| [r[:name].downcase, r[:type]] }.each do |record|
+  - mx_records = @dns_zone.dns_records.where(record_type: DnsRecord::MX)
+  - if mx_records.any?
+    div class="table-container mb-6"
+      table data-record-search-target="table"
+        thead
           tr
-            td = record[:type]
-            td = record[:name]
-            td = record[:data]
-            td = record[:ttl]
-- else
-  p class="empty-state" No records found in Redis for this zone.
+            th Name
+            th Priority
+            th Host
+            th TTL
+            th Actions
+        tbody
+          - mx_records.order("LOWER(name)").each do |record|
+            tr
+              td = record.name
+              td = record.mx_priority
+              td = record.mx_host
+              td = record.ttl
+              td
+                = link_to "Delete", [@dns_zone, record], method: :delete, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-danger btn-sm"
+  - else
+    p class="empty-state" No MX records found for this zone.
+
+  h2 class="page-subtitle" Zone Records (Redis)
+
+  - if @zone_records.any?
+    div class="table-container"
+      table data-record-search-target="table"
+        thead
+          tr
+            th Type
+            th Name
+            th Data
+            th TTL
+        tbody
+          - @zone_records.sort_by { |r| [r[:name].downcase, r[:type]] }.each do |record|
+            tr
+              td = record[:type]
+              td = record[:name]
+              td = record[:data]
+              td = record[:ttl]
+  - else
+    p class="empty-state" No records found in Redis for this zone.

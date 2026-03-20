@@ -15,6 +15,7 @@ class DnsRecordsController < ApplicationController
         format.json { render :index, status: :created, location: @dns_zone }
       else
         @dns_zone.dns_records.reload
+        @zone_records = @dns_zone.zone_records
         format.html { render :index, status: :unprocessable_entity }
         format.json { render json: @dns_record.errors, status: :unprocessable_entity }
       end

@@ -15,9 +15,11 @@ Rails.application.routes.draw do
       post 'zones/create_acme_challenge', to: 'zones#create_acme_challenge'
       post 'zones/add_a', to: 'zones#add_a'
       post 'zones/add_mx', to: 'zones#add_mx'
+      post 'zones/add_soa', to: 'zones#add_soa'
       delete 'zones/delete_acme_challenge', to: 'zones#delete_acme_challenge'
       delete 'zones/delete_subdomain', to: 'zones#delete_subdomain'
       delete 'zones/delete_mx', to: 'zones#delete_mx'
+      delete 'zones/delete_soa', to: 'zones#delete_soa'
     end
   end
 

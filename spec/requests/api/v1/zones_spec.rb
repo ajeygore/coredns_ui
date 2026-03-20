@@ -12,6 +12,7 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
     # Define subdomain parameters
     @subdomain_params = { zone: { name: 'sub.example.com', data: '10.1.1.1' } }
   end
+
   context 'with invalid api_token' do
     it 'does not create a new subdomain and returns an unauthorized status' do
       post '/api/v1/zones/create_subdomain',
@@ -37,9 +38,11 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
 
       expect(response).to have_http_status(:created)
       expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A])
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:name)).to match_array(%w[* @])
+      zone = DnsZone.find_by(name: 'sub.example.com')
+      # ensure_default_records creates SOA + NS, then 2 A records (@ and *)
+      expect(zone.dns_records.count).to eq(4)
+      expect(zone.dns_records.pluck(:record_type)).to match_array(%w[SOA NS A A])
+      expect(zone.dns_records.where(record_type: DnsRecord::A).pluck(:name)).to match_array(%w[* @])
     end
 
     it 'creates a new acme_challenge and returns a success status' do
@@ -60,8 +63,10 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
 
       expect(response).to have_http_status(:created)
       expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(3)
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A TXT])
+      zone = DnsZone.find_by(name: 'sub.example.com')
+      # SOA + NS + 2 A records + 1 TXT acme challenge
+      expect(zone.dns_records.count).to eq(5)
+      expect(zone.dns_records.pluck(:record_type)).to match_array(%w[SOA NS A A TXT])
     end
 
     it 'delete a new acme_challenge and returns a success status' do
@@ -82,8 +87,9 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
 
       expect(response).to have_http_status(:created)
       expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(3)
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.pluck(:record_type)).to match_array(%w[A A TXT])
+      zone = DnsZone.find_by(name: 'sub.example.com')
+      expect(zone.dns_records.count).to eq(5)
+      expect(zone.dns_records.pluck(:record_type)).to match_array(%w[SOA NS A A TXT])
 
       delete '/api/v1/zones/delete_acme_challenge',
              params: @subdomain_params.to_json,
@@ -91,7 +97,7 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
                'Authorization' => @api_token.token,
                'Content-Type' => 'application/json'
              }
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
+      expect(zone.dns_records.count).to eq(4)
     end
 
     it 'should delete the subdomain and return a success status' do
@@ -103,7 +109,8 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
            }
       expect(response).to have_http_status(:created)
       expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
-      expect(DnsZone.find_by(name: 'sub.example.com').dns_records.count).to eq(2)
+      zone = DnsZone.find_by(name: 'sub.example.com')
+      expect(zone.dns_records.count).to eq(4)
       delete '/api/v1/zones/delete_subdomain',
              params: @subdomain_params.to_json,
              headers: {

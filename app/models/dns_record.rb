@@ -6,6 +6,7 @@ class DnsRecord < ApplicationRecord
   validates :record_type, presence: true
   validates :name, uniqueness: { scope: %i[data dns_zone_id], message: 'already exists' }
   validate :validate_mx_record_format, if: -> { record_type == MX }
+  validate :validate_soa_record_format, if: -> { record_type == SOA }
 
   A = 'A'.freeze
   AAAA = 'AAAA'.freeze
@@ -103,6 +104,24 @@ class DnsRecord < ApplicationRecord
     redis.hset(zone_name, name, record.to_json)
   end
 
+  def add_soa
+    parts = data.split(' ')
+    record = {
+      soa: {
+        ttl: time_to_live.to_i,
+        ns: parts[0],
+        mbox: parts[1],
+        refresh: parts[2].to_i,
+        retry: parts[3].to_i,
+        expire: parts[4].to_i,
+        minttl: parts[5].to_i
+      }
+    }
+    zone_name = dns_zone.name.end_with?('.') ? dns_zone.name : "#{dns_zone.name}."
+    redis = Redis.new(host: dns_zone.redis_host)
+    redis.hset(zone_name, name, record.to_json)
+  end
+
   def mx_priority
     return nil unless record_type == MX
     parse_mx_data[0]
@@ -156,6 +175,24 @@ class DnsRecord < ApplicationRecord
     return if hostname.match?(/\A[a-zA-Z0-9.-]+\z/)
 
     errors.add(:data, 'hostname contains invalid characters')
+  end
+
+  def validate_soa_record_format
+    return if data.blank?
+
+    parts = data.split(' ')
+    if parts.length != 6
+      errors.add(:data, 'must be in format "primary_ns admin_email refresh retry expire minttl"')
+      return
+    end
+
+    # Validate timing values are numbers
+    parts[2..5].each_with_index do |val, i|
+      Integer(val)
+    rescue ArgumentError
+      field_names = %w[refresh retry expire minttl]
+      errors.add(:data, "#{field_names[i]} must be a number")
+    end
   end
 
   def parse_mx_data

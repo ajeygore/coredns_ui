@@ -1,106 +1,96 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["standardField", "mxFields", "priority", "host", "data"]
+  static targets = ["standardField", "mxFields", "soaFields", "priority", "host", "data",
+                     "soaNs", "soaMbox", "soaRefresh", "soaRetry", "soaExpire", "soaMinttl", "soaData"]
 
   connect() {
     const selectElement = this.element.querySelector('select[name="dns_record[record_type]"]')
-    
-    // Add backup manual event listener and debug all events
+
     if (selectElement) {
-      // Listen for key events to debug
-      try {
-        selectElement.addEventListener('change', (event) => {
-          this.toggleFields(event)
-        })
-        
-        selectElement.addEventListener('click', (event) => {
-        })
-        
-      } catch (error) {
-        console.error("❌ Error adding event listeners:", error)
-      }
+      selectElement.addEventListener('change', (event) => {
+        this.toggleFields(event)
+      })
     }
-    
+
     this.toggleFields()
     this.bindMxInputs()
-    
-    // Ensure initial state is correct
+    this.bindSoaInputs()
+
     setTimeout(() => {
       this.toggleFields()
     }, 100)
   }
 
   toggleFields(event) {
-    // Get the select element - it might be the event target or we need to find it
     const selectElement = event?.target || this.element.querySelector('select[name="dns_record[record_type]"]')
-    
-    if (!selectElement) {
-      console.error("Could not find record type select element")
-      return
-    }
-    
+
+    if (!selectElement) return
+
     const recordType = selectElement.value
-    
-    // Check if targets exist
-    if (!this.hasStandardFieldTarget || !this.hasMxFieldsTarget) {
-      return
+
+    if (!this.hasStandardFieldTarget || !this.hasMxFieldsTarget || !this.hasSoaFieldsTarget) return
+
+    // Hide all field groups first
+    this.standardFieldTarget.classList.add("hidden")
+    this.mxFieldsTarget.classList.add("hidden")
+    this.soaFieldsTarget.classList.add("hidden")
+
+    // Disable all data fields
+    const standardDataField = this.standardFieldTarget.querySelector('input[name="dns_record[data]"]')
+    if (standardDataField) {
+      standardDataField.disabled = true
+      standardDataField.value = ""
     }
-    
+    if (this.hasDataTarget) {
+      this.dataTarget.disabled = true
+      this.dataTarget.value = ""
+    }
+    if (this.hasSoaDataTarget) {
+      this.soaDataTarget.disabled = true
+      this.soaDataTarget.value = ""
+    }
+
     if (recordType === "MX") {
-      // Hide standard field
-      this.standardFieldTarget.classList.add("hidden")
-      
-      // Show MX fields
       this.mxFieldsTarget.classList.remove("hidden")
-      
-      // Disable standard data field so it doesn't submit
-      const standardDataField = this.standardFieldTarget.querySelector('input[name="dns_record[data]"]')
-      if (standardDataField) {
-        standardDataField.disabled = true
-        standardDataField.value = ""
-      }
-      
-      // Enable MX data field
-      if (this.hasDataTarget) {
-        this.dataTarget.disabled = false
-      }
+      if (this.hasDataTarget) this.dataTarget.disabled = false
+    } else if (recordType === "SOA") {
+      this.soaFieldsTarget.classList.remove("hidden")
+      if (this.hasSoaDataTarget) this.soaDataTarget.disabled = false
     } else {
-      // Show standard field
       this.standardFieldTarget.classList.remove("hidden")
-      
-      // Hide MX fields
-      this.mxFieldsTarget.classList.add("hidden")
-      
-      // Enable standard data field
-      const standardDataField = this.standardFieldTarget.querySelector('input[name="dns_record[data]"]')
-      if (standardDataField) {
-        standardDataField.disabled = false
-      }
-      
-      // Disable and clear MX fields
+      if (standardDataField) standardDataField.disabled = false
+    }
+
+    // Clear unused fields
+    if (recordType !== "MX") {
       if (this.hasPriorityTarget) this.priorityTarget.value = ""
       if (this.hasHostTarget) this.hostTarget.value = ""
-      if (this.hasDataTarget) {
-        this.dataTarget.disabled = true
-        this.dataTarget.value = ""
-      }
     }
   }
 
   bindMxInputs() {
-    // Bind input events to combine priority and host into data field
     if (this.hasPriorityTarget && this.hasHostTarget && this.hasDataTarget) {
       this.priorityTarget.addEventListener('input', this.combineMxData.bind(this))
       this.hostTarget.addEventListener('input', this.combineMxData.bind(this))
     }
   }
 
+  bindSoaInputs() {
+    const soaFields = ['soaNs', 'soaMbox', 'soaRefresh', 'soaRetry', 'soaExpire', 'soaMinttl']
+    soaFields.forEach(field => {
+      const hasTarget = `has${field.charAt(0).toUpperCase() + field.slice(1)}Target`
+      if (this[hasTarget]) {
+        this[`${field}Target`].addEventListener('input', this.combineSoaData.bind(this))
+      }
+    })
+  }
+
   combineMxData() {
     if (this.hasPriorityTarget && this.hasHostTarget && this.hasDataTarget) {
       const priority = this.priorityTarget.value.trim()
       const host = this.hostTarget.value.trim()
-      
+
       if (priority && host) {
         this.dataTarget.value = `${priority} ${host}`
       } else {
@@ -109,18 +99,31 @@ export default class extends Controller {
     }
   }
 
-  // Add form submission handler to ensure MX data is combined before submission
+  combineSoaData() {
+    if (!this.hasSoaDataTarget) return
+
+    const ns = this.hasSoaNsTarget ? this.soaNsTarget.value.trim() : ''
+    const mbox = this.hasSoaMboxTarget ? this.soaMboxTarget.value.trim() : ''
+    const refresh = this.hasSoaRefreshTarget ? this.soaRefreshTarget.value.trim() : '3600'
+    const retry = this.hasSoaRetryTarget ? this.soaRetryTarget.value.trim() : '600'
+    const expire = this.hasSoaExpireTarget ? this.soaExpireTarget.value.trim() : '86400'
+    const minttl = this.hasSoaMinttlTarget ? this.soaMinttlTarget.value.trim() : '300'
+
+    if (ns && mbox) {
+      this.soaDataTarget.value = `${ns} ${mbox} ${refresh} ${retry} ${expire} ${minttl}`
+    } else {
+      this.soaDataTarget.value = ''
+    }
+  }
+
   handleFormSubmit(event) {
     const selectElement = this.element.querySelector('select[name="dns_record[record_type]"]')
     const recordType = selectElement?.value
-    
+
     if (recordType === "MX") {
       this.combineMxData()
-    } else {
-      // For non-MX records, check if standard data field has value
-      const standardDataField = this.standardFieldTarget?.querySelector('input[name="dns_record[data]"]')
-      
+    } else if (recordType === "SOA") {
+      this.combineSoaData()
     }
-    
   }
 }
