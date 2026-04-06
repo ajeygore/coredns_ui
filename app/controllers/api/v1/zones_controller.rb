@@ -7,7 +7,7 @@ class Api::V1::ZonesController < Api::ApiController
       zone.refresh
       render json: { id: zone.id, name: zone.name }, status: :created
     else
-      render json: { errors: zone.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: ["Failed to create subdomain"] }, status: :unprocessable_entity
     end
   end
 
@@ -52,7 +52,7 @@ class Api::V1::ZonesController < Api::ApiController
     if DnsZone.delete_subdomain(zone_params)
       render json: { name: zone_params[:name] }, status: :ok
     else
-      render json: { errors: zone.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: ["Zone not found"] }, status: :not_found
     end
   end
 
