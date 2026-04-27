@@ -14,7 +14,8 @@ class Api::V1::ZonesController < Api::ApiController
   def create_acme_challenge
     zone = DnsZone.find_by(name: zone_params[:name])
 
-    record = zone.dns_records.create(name: '_acme-challenge', record_type: DnsRecord::TXT, data: zone_params[:data],
+    challenge_name = zone_params[:record_name].presence || '_acme-challenge'
+    record = zone.dns_records.create(name: challenge_name, record_type: DnsRecord::TXT, data: zone_params[:data],
                                      ttl: '300')
     if record.save
       zone.refresh
@@ -39,7 +40,8 @@ class Api::V1::ZonesController < Api::ApiController
 
   def delete_acme_challenge
     zone = DnsZone.find_by(name: zone_params[:name])
-    record = zone.dns_records.find_by(name: '_acme-challenge', record_type: DnsRecord::TXT)
+    challenge_name = zone_params[:record_name].presence || '_acme-challenge'
+    record = zone.dns_records.find_by(name: challenge_name, record_type: DnsRecord::TXT)
     if record.destroy
       zone.update_redis(record.name)
       render json: { id: record.id, name: record.name, data: record.data }, status: :ok
