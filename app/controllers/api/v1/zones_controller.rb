@@ -160,7 +160,7 @@ class Api::V1::ZonesController < Api::ApiController
   # Use callbacks to share common setup or constraints between actions.
 
   def zone_params
-    params.require(:zone).permit(:name, :data, :record_name)
+    params.require(:zone).permit(:name, :data, :record_name, :subdomain)
   end
 
   def mx_params

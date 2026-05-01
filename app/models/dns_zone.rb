@@ -157,15 +157,26 @@ class DnsZone < ApplicationRecord
                             ttl: '300')
   end
 
+  # FIXED 2026-05-02: original implementation ignored the subdomain param and
+  # destroyed the entire zone (records + Redis key + DB row). Catastrophic on
+  # a multi-tenant DNS store — incident on 2026-05-01 took out clawstation.ai
+  # and h.briobots.ai zones via two innocent-looking delete-record calls.
+  # This rewrite deletes only the records named by params[:subdomain] within
+  # the zone and refreshes Redis for that one record name, mirroring the
+  # delete_acme_challenge shape.
   def self.delete_subdomain(params)
     zone = DnsZone.find_by(name: params[:name])
     return false if zone.nil?
 
-    zone.dns_records.destroy_all
+    subdomain = params[:subdomain].to_s.presence
+    return false if subdomain.blank?
 
-    redis = Redis.new(host: zone.redis_host)
-    redis.del("#{zone.name}.")
-    zone.destroy
+    records = zone.dns_records.where(name: subdomain)
+    return false if records.empty?
+
+    records.destroy_all
+    zone.update_redis(subdomain)
+    true
   end
 
   def self.create_acme_challenge(params)

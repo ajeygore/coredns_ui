@@ -150,4 +150,46 @@ RSpec.describe DnsZone, type: :model do
       ENV['DEFAULT_PRIMARY_NS'] = cached_val if cached_val
     end
   end
+
+  # Regression suite for the 2026-05-01 incident — old delete_subdomain
+  # ignored the subdomain param and destroyed the entire zone.
+  describe '.delete_subdomain' do
+    let(:zone) { DnsZone.create!(name: 'example.com', redis_host: 'localhost') }
+    let(:redis_mock) { instance_double(Redis, hdel: 1, hset: 1) }
+
+    before do
+      allow(Redis).to receive(:new).with(host: 'localhost').and_return(redis_mock)
+      zone.dns_records.create!(name: 'foo', record_type: DnsRecord::A, data: '1.1.1.1', ttl: '300')
+      zone.dns_records.create!(name: 'bar', record_type: DnsRecord::A, data: '2.2.2.2', ttl: '300')
+    end
+
+    it 'deletes ONLY the named subdomain, leaving zone + sibling records intact' do
+      result = DnsZone.delete_subdomain(name: 'example.com', subdomain: 'foo')
+
+      expect(result).to be(true)
+      expect(DnsZone.find_by(name: 'example.com')).to eq(zone)             # zone survives
+      expect(zone.dns_records.where(name: 'foo')).to be_empty               # subdomain gone
+      expect(zone.dns_records.where(name: 'bar')).not_to be_empty           # sibling intact
+    end
+
+    it 'returns false (no-op) when the zone does not exist' do
+      expect(DnsZone.delete_subdomain(name: 'nope.example.com', subdomain: 'foo')).to be(false)
+    end
+
+    it 'returns false when subdomain param is missing or blank — DOES NOT delete the zone' do
+      expect(DnsZone.delete_subdomain(name: 'example.com')).to be(false)
+      expect(DnsZone.delete_subdomain(name: 'example.com', subdomain: '')).to be(false)
+
+      # The catastrophic regression we are guarding against: an old version
+      # of this method ignored :subdomain and destroyed the zone wholesale.
+      expect(DnsZone.find_by(name: 'example.com')).to eq(zone)
+      expect(zone.dns_records.count).to eq(2)
+    end
+
+    it 'returns false when no records match the subdomain — does not delete the zone' do
+      expect(DnsZone.delete_subdomain(name: 'example.com', subdomain: 'nonexistent')).to be(false)
+      expect(DnsZone.find_by(name: 'example.com')).to eq(zone)
+      expect(zone.dns_records.count).to eq(2)
+    end
+  end
 end
