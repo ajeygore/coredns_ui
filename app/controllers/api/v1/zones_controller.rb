@@ -15,8 +15,11 @@ class Api::V1::ZonesController < Api::ApiController
     zone = DnsZone.find_by(name: zone_params[:name])
 
     challenge_name = zone_params[:record_name].presence || '_acme-challenge'
+    # TTL=1 so the global `cache` plugin in Corefile only holds these records
+    # (and their NXDOMAIN siblings) for ~1s — otherwise the present→validate
+    # window during ACME flows can serve a stale cached value to the CA.
     record = zone.dns_records.create(name: challenge_name, record_type: DnsRecord::TXT, data: zone_params[:data],
-                                     ttl: '300')
+                                     ttl: '1')
     if record.save
       zone.refresh
       render json: { id: record.id, name: record.name, data: record.data }, status: :created
@@ -41,13 +44,14 @@ class Api::V1::ZonesController < Api::ApiController
   def delete_acme_challenge
     zone = DnsZone.find_by(name: zone_params[:name])
     challenge_name = zone_params[:record_name].presence || '_acme-challenge'
-    record = zone.dns_records.find_by(name: challenge_name, record_type: DnsRecord::TXT)
-    if record.destroy
-      zone.update_redis(record.name)
-      render json: { id: record.id, name: record.name, data: record.data }, status: :ok
-    else
-      render json: { errors: record.errors.full_messages }, status: :unprocessable_entity
-    end
+    # `find_by` returned only the first match, leaving siblings behind when
+    # a previous lego run ordered SAN+wildcard against the same record_name.
+    # Destroy ALL matches and do a full zone.refresh so Redis is in sync —
+    # update_redis(name) was a per-name partial sync that didn't write the
+    # zero-records case (Redis kept the deleted record's old value).
+    destroyed = zone.dns_records.where(name: challenge_name, record_type: DnsRecord::TXT).destroy_all
+    zone.refresh
+    render json: { count: destroyed.size, name: challenge_name }, status: :ok
   end
 
   def delete_subdomain
