@@ -99,3 +99,7 @@ gem 'omniauth-google-oauth2'
 
 gem 'httparty'
 gem 'pry'
+
+# Extracted from the Ruby stdlib in 3.4 — pin explicitly so bundler doesn't
+# warn / fail to resolve it as a transitive default gem.
+gem 'tsort', '~> 0.2.0'
