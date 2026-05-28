@@ -160,7 +160,12 @@ class Api::V1::ZonesController < Api::ApiController
   # Use callbacks to share common setup or constraints between actions.
 
   def zone_params
-    params.require(:zone).permit(:name, :data, :record_name)
+    # :subdomain is read by DnsZone.delete_subdomain to scope the deletion to
+    # a single leaf record. Without it on the permit list, strong-params strips
+    # it before the model sees it, the method short-circuits with `return false
+    # if subdomain.blank?`, and the controller renders 404 'Zone not found'
+    # for every call — silently leaking DNS records on every station teardown.
+    params.require(:zone).permit(:name, :data, :record_name, :subdomain)
   end
 
   def mx_params
