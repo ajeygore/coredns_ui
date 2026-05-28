@@ -100,7 +100,11 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
       expect(zone.dns_records.count).to eq(4)
     end
 
-    it 'should delete the subdomain and return a success status' do
+    # Safety property (see #12): delete_subdomain MUST NOT destroy a zone. When
+    # called without a :subdomain it returns 404 and leaves everything intact.
+    # The old destructive behavior (this used to assert the whole zone was
+    # gone) took clawstation.ai down twice — do not restore it.
+    it 'does NOT destroy the zone when called without a :subdomain' do
       post '/api/v1/zones/create_subdomain',
            params: @subdomain_params.to_json,
            headers: {
@@ -108,16 +112,19 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
              'Content-Type' => 'application/json'
            }
       expect(response).to have_http_status(:created)
-      expect(DnsZone.exists?(name: 'sub.example.com')).to be_truthy
       zone = DnsZone.find_by(name: 'sub.example.com')
       expect(zone.dns_records.count).to eq(4)
+
       delete '/api/v1/zones/delete_subdomain',
              params: @subdomain_params.to_json,
              headers: {
                'Authorization' => @api_token.token,
                'Content-Type' => 'application/json'
              }
-      expect(DnsZone.find_by(name: 'sub.example.com')).to eq(nil)
+
+      expect(response).to have_http_status(:not_found)
+      expect(DnsZone.find_by(name: 'sub.example.com')).not_to be_nil
+      expect(zone.reload.dns_records.count).to eq(4)
     end
 
     # Regression: delete_subdomain was 404'ing in production because :subdomain
