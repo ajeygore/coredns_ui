@@ -119,5 +119,26 @@ RSpec.describe 'Api::V1::Zones', type: :request do # rubocop:disable Metrics/Blo
              }
       expect(DnsZone.find_by(name: 'sub.example.com')).to eq(nil)
     end
+
+    # Regression: delete_subdomain was 404'ing in production because :subdomain
+    # was missing from the strong-params permit list, so the model never saw
+    # it and returned false. Every DNS delete call was silently leaking the
+    # leaf A record. See ClawStation #318.
+    it 'should delete a single leaf record within an apex zone' do
+      apex = DnsZone.find_by(name: 'example.com') || DnsZone.create!(name: 'example.com')
+      apex.dns_records.create!(name: 'leaf-to-delete', record_type: DnsRecord::A, data: '10.0.0.1', ttl: '300')
+      apex.dns_records.create!(name: 'leaf-to-keep',   record_type: DnsRecord::A, data: '10.0.0.2', ttl: '300')
+
+      delete '/api/v1/zones/delete_subdomain',
+             params: { zone: { name: 'example.com', subdomain: 'leaf-to-delete' } }.to_json,
+             headers: {
+               'Authorization' => @api_token.token,
+               'Content-Type' => 'application/json'
+             }
+
+      expect(response).to have_http_status(:ok)
+      expect(apex.dns_records.where(name: 'leaf-to-delete')).to be_empty
+      expect(apex.dns_records.where(name: 'leaf-to-keep')).not_to be_empty
+    end
   end
 end
