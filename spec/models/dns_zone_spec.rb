@@ -150,4 +150,44 @@ RSpec.describe DnsZone, type: :model do
       ENV['DEFAULT_PRIMARY_NS'] = cached_val if cached_val
     end
   end
+
+  # Regression suite for the delete_subdomain zone-wipe incidents (2026-05-01
+  # and 2026-05-28). The old implementation ignored the subdomain param and
+  # destroyed the entire zone. These tests pin the safe leaf-only behavior.
+  describe '.delete_subdomain' do
+    let(:zone) { DnsZone.create!(name: 'example.com', redis_host: 'localhost') }
+
+    before do
+      allow_any_instance_of(DnsZone).to receive(:update_redis).and_return(true)
+      zone.dns_records.create!(name: 'foo', record_type: DnsRecord::A, data: '1.1.1.1', ttl: '300')
+      zone.dns_records.create!(name: 'bar', record_type: DnsRecord::A, data: '2.2.2.2', ttl: '300')
+    end
+
+    it 'deletes ONLY the named subdomain, leaving zone + sibling records intact' do
+      result = DnsZone.delete_subdomain(name: 'example.com', subdomain: 'foo')
+
+      expect(result).to be(true)
+      expect(DnsZone.find_by(name: 'example.com')).to eq(zone)       # zone survives
+      expect(zone.dns_records.where(name: 'foo')).to be_empty        # subdomain gone
+      expect(zone.dns_records.where(name: 'bar')).not_to be_empty    # sibling intact
+    end
+
+    it 'returns false (no-op) when the zone does not exist' do
+      expect(DnsZone.delete_subdomain(name: 'nope.example.com', subdomain: 'foo')).to be(false)
+    end
+
+    it 'returns false when subdomain is missing or blank — DOES NOT destroy the zone' do
+      expect(DnsZone.delete_subdomain(name: 'example.com')).to be(false)
+      expect(DnsZone.delete_subdomain(name: 'example.com', subdomain: '')).to be(false)
+
+      # The catastrophic regression we are guarding against.
+      expect(DnsZone.find_by(name: 'example.com')).to eq(zone)
+      expect(zone.dns_records.count).to eq(2)
+    end
+
+    it 'returns false when the named subdomain has no records' do
+      expect(DnsZone.delete_subdomain(name: 'example.com', subdomain: 'does-not-exist')).to be(false)
+      expect(zone.dns_records.count).to eq(2)
+    end
+  end
 end
